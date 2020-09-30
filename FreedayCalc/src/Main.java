@@ -34,7 +34,6 @@ public class Main {
                 case WEDNESDAY -> wednesday++;
                 case THURSDAY -> thursday++;
                 case FRIDAY -> friday++;
-                default -> System.out.println("None day");
 
             }
 
@@ -50,11 +49,16 @@ public class Main {
             }
 
         }
-        System.out.println(monday);
-        System.out.println(thuesday);
-        System.out.println(wednesday);
-        System.out.println(thursday);
-        System.out.println(friday);
+        System.out.print(monday);
+        System.out.println(" mondays");
+        System.out.print(thuesday);
+        System.out.println(" thuesdays");
+        System.out.print(wednesday);
+        System.out.println(" wednesdays");
+        System.out.print(thursday);
+        System.out.println(" thursdays");
+        System.out.print(friday);
+        System.out.println(" fridays");
 
 
     }
