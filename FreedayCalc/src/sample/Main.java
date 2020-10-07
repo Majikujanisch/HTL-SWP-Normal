@@ -1,3 +1,5 @@
+package sample;
+
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -11,12 +13,11 @@ import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 public class Main extends Application{
     static int monday = 0, thuesday = 0, wednesday = 0, thursday = 0, friday = 0;
-    public static void main(String[] args) {
+    public static void main(String[] args){
         //Variablen
         int year = 2000, durationYears, fixedyear;
 
@@ -32,7 +33,7 @@ public class Main extends Application{
 
         //Definierung der Feiertage
         do {
-            try (Scanner scanner = new Scanner(new File("D:\\Schule\\Vierte+\\Programmieren\\Rubner\\Normal\\FreedayCalc\\FreeDays.csv"))) {
+            try (Scanner scanner = new Scanner(new File("D:\\Schule\\Vierte+\\Programmieren\\Rubner\\Normal\\FreedayCalc\\src\\sample\\FreeDays.csv"))) {
                 while (scanner.hasNextLine()) {
                     freedays.add(getRecordFromLine(scanner.nextLine(), year));
                 }
@@ -103,35 +104,33 @@ public class Main extends Application{
         System.out.println(" fridays");
     }
     @Override
-    public void start(Stage primaryStage) {
-        try {
+    public void start(Stage primaryStage)throws Exception {
+        try{
             // Angeben wie die Achsen sein sollen
-            NumberAxis xAxis = new NumberAxis();
-            CategoryAxis yAxis = new CategoryAxis();
+            final NumberAxis xAxis = new NumberAxis();
+            final CategoryAxis yAxis = new CategoryAxis();
 
             // Anlegen der BarChart und angabe wie die Anordnung
-            BarChart<Number, String> barChart = new BarChart<Number, String>(xAxis, yAxis);
+            final BarChart<String, Number> barChart = new BarChart<String, Number>(yAxis, xAxis);
             barChart.setTitle("Freie Tage im Vergleich");
             xAxis.setLabel("Tage");
             yAxis.setLabel("Wochentage");
 
             // Anlegen einer Serie mit den jeweiligen Werten und dem Item
             // dem sie zugeordnet werden.
-            XYChart.Series<Number, String> series1 = new XYChart.Series<Number, String>();
+            XYChart.Series<String, Number> series1 = new XYChart.Series<String,Number>();
             series1.setName("Days of week");
-            series1.getData().add(new XYChart.Data(monday, "mondays"));
-            series1.getData().add(new XYChart.Data(thuesday, "tuesdays"));
-            series1.getData().add(new XYChart.Data(wednesday, "wednesday"));
-            series1.getData().add(new XYChart.Data(thursday, "thursdays"));
-            series1.getData().add(new XYChart.Data(friday, "fridays"));
+            series1.getData().add(new XYChart.Data("Mondays",monday));
+            series1.getData().add(new XYChart.Data("tuesdays",thuesday));
+            series1.getData().add(new XYChart.Data("wednesday",wednesday));
+            series1.getData().add(new XYChart.Data("thursdays",thursday ));
+            series1.getData().add(new XYChart.Data("fridays",friday));
 
 
             barChart.getData().add(series1);
 
-            VBox vbox = new VBox(barChart);
-
             primaryStage.setTitle("Freie Tage im Vergleich");
-            Scene scene = new Scene(vbox, 400,200);
+            Scene scene = new Scene(barChart, 400,200);
 
             primaryStage.setScene(scene);
             primaryStage.setHeight(300);
