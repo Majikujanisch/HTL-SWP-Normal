@@ -71,11 +71,11 @@ public class Main extends Application{
         //Ausgabe der Daten
         writeDays(monday,thusday,wednesday,thursday,friday,saturday,sunday);
         //Mysql
-        connectToMysql("127.0.0.1","root","");
-        createTableMysql("127.0.0.1","root","");
-        createDataMysql("127.0.0.1","root","",year,durationYears,alldays,
-                monday,thursday,wednesday,thusday,friday,saturday,sunday);
-        showMysql("127.0.0.1","root","");
+        connectToMysql("127.0.0.1","root",""); // Password 
+        createTableMysql("127.0.0.1","root",""); // Password
+        createDataMysql("127.0.0.1","root","",year,durationYears,alldays, 
+                monday,thursday,wednesday,thusday,friday,saturday,sunday); //Password
+        showMysql("127.0.0.1","root",""); // Password
         //JavaFX
         launch(args);
 
@@ -164,7 +164,7 @@ public class Main extends Application{
     }
     public static void showMysql(String host, String user, String passwd){
         try{
-            String connectionCommand = "jdbc:mysql://"+host+":3305/"+"FreeDays?user="+user+"&password="+passwd;
+            String connectionCommand = "jdbc:mysql://"+host+":3306/"+"FreeDays?user="+user+"&password="+passwd; //Port überprüfen
             connection.createStatement().executeUpdate("select * from data");
         }catch(Exception e){
             System.out.println("false");
