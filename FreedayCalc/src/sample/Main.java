@@ -124,10 +124,10 @@ public class Main extends Application{
     public static boolean connectToMysql(String host, String user, String passwd){
         try{
             Class.forName("com.mysql.cj.jdbc.Driver").getDeclaredConstructor().newInstance();
-            String connectionCommand = "jdbc:mysql://"+host+":3305/"+"?user="+user+"&password="+passwd;
+            String connectionCommand = "jdbc:mysql://"+host+":3306/"+"?user="+user+"&password="+passwd; //port
             connection = DriverManager.getConnection(connectionCommand);
             connection.createStatement().executeUpdate("create database if not exists FreeDays");
-            connectionCommand = "jdbc:mysql://"+host+":3305/"+"FreeDays?user="+user+"&password="+passwd;
+            connectionCommand = "jdbc:mysql://"+host+":3306/"+"FreeDays?user="+user+"&password="+passwd; //port
             connection = DriverManager.getConnection(connectionCommand);
             return true;
 
@@ -138,7 +138,7 @@ public class Main extends Application{
     }
     public static void createTableMysql(String host, String user, String passwd){
         try{
-            String connectionCommand = "jdbc:mysql://"+host+":3305/"+"FreeDays?user="+user+"&password="+passwd;
+            String connectionCommand = "jdbc:mysql://"+host+":3306/"+"FreeDays?user="+user+"&password="+passwd; //port
             connection.createStatement().executeUpdate("create table if not exists data(" +
                     "Jahr int(4) PRIMARY KEY, Dauer int(4), AlleTage int(5), Montage int (5),Dienstage int (5)," +
                     "Mittwoche int (5),Donnerstage int (5),Freitage int (5),Samstage int (5),Sonntage int (5))");
@@ -151,7 +151,7 @@ public class Main extends Application{
         int jahrSql, dauerSql;
 
         try{
-            String connectionCommand = "jdbc:mysql://"+host+":3305/"+"FreeDays?user="+user+"&password="+passwd;
+            String connectionCommand = "jdbc:mysql://"+host+":3306/"+"FreeDays?user="+user+"&password="+passwd; port
             jahrSql = connection.createStatement().executeUpdate("select Jahr from data where Jahr =" + jahr + ";");
             dauerSql = connection.createStatement().executeUpdate("select Dauer from data where Dauer =" + dauer + ";");
             if(jahr != jahrSql && dauer != dauerSql) {
