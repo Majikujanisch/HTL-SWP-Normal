@@ -1,0 +1,5 @@
+LIBS: JSON, Connector/j 8, (soon)JavaFX
+
+Das Programm funktionier so, dass man zuerst aus der Alphavantage Api die close Aktienkurse der letzten 20 Jahre eingelesen werden. Anschließend wird erst mal das letze
+Update date ausgelesen und dann dei metaDaten verschmissen. Nun lesen wir 200 Tage ein und fügen sie in eine Datenbank ein. Es werden immer nur 200 Tage gespeichert,
+bei veränderungen wird das letzte Datum "rausgeworfen. Dadurch, dass der erste Tag immer ein höher wird, wird der vorletzte Tag der neue letzte Tag.
