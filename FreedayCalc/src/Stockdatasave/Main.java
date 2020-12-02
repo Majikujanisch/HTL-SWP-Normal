@@ -21,7 +21,7 @@ public class Main { // key IVB25ADTVUERPRXD
     static Connection connection;
     static String url = "jdbc:mysql://localhost/Aktienkurse?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
     static String usernameDB="root";
-    static String passwordDB="f2idagAtc30U";
+    static String passwordDB="";
     public static void main(String[] args) throws JSONException, MalformedURLException, IOException, ClassNotFoundException, SQLException {
         String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=", key = "IVB25ADTVUERPRXD";
         Scanner user = new Scanner(System.in);
