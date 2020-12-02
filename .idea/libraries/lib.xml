@@ -2,14 +2,18 @@
   <library name="lib">
     <CLASSES>
       <root url="file://$PROJECT_DIR$/../../../../javafx-sdk-11.0.2/lib" />
-      <root url="file://C:/Program Files (x86)/MySQL/Connector J 8.0" />
+      <root url="file://$PROJECT_DIR$/../../../../Program Files (x86)/MySQL/Connector J 8.0" />
+      <root url="file://E:/Programme/Lib/javafx-sdk-11.0.2/lib" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
       <root url="file://$PROJECT_DIR$/../../../../javafx-sdk-11.0.2/lib" />
+      <root url="file://E:/Programme/Lib/javafx-sdk-11.0.2/lib" />
     </SOURCES>
-    <jarDirectory url="file://C:/Program Files (x86)/MySQL/Connector J 8.0" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/../../../../javafx-sdk-11.0.2/lib" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/../../../../Program Files (x86)/MySQL/Connector J 8.0" recursive="false" />
+    <jarDirectory url="file://E:/Programme/Lib/javafx-sdk-11.0.2/lib" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/../../../../javafx-sdk-11.0.2/lib" recursive="false" type="SOURCES" />
+    <jarDirectory url="file://E:/Programme/Lib/javafx-sdk-11.0.2/lib" recursive="false" type="SOURCES" />
   </library>
 </component>
