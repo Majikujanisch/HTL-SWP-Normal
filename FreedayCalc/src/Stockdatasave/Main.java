@@ -16,12 +16,21 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.*;
 import java.util.*;
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
+import javafx.stage.Stage;
 
-public class Main { // key IVB25ADTVUERPRXD
+public class Main extends Application{ // key IVB25ADTVUERPRXD
     static Connection connection;
     static String url = "jdbc:mysql://localhost/Aktienkurse?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
     static String usernameDB="root";
     static String passwordDB="";
+    static String ticker;
+
     public static void main(String[] args) throws JSONException, MalformedURLException, IOException, ClassNotFoundException, SQLException {
         String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=", key = "IVB25ADTVUERPRXD";
         Scanner user = new Scanner(System.in);
@@ -29,7 +38,7 @@ public class Main { // key IVB25ADTVUERPRXD
 
         //URL Abfrage und zusammenbau
         System.out.println("Welchen Ticker wollen Sie abfragen?");
-        String ticker = user.next();
+        ticker = user.next();
         URL = buildURL(URL, ticker, key);
         System.out.println(URL);
 
@@ -53,6 +62,7 @@ public class Main { // key IVB25ADTVUERPRXD
             date = date.minusDays(1);
         }
         showMysql(ticker);
+        launch(args);
     }
 
 
@@ -85,7 +95,6 @@ public class Main { // key IVB25ADTVUERPRXD
         }
     }
     public static void createDataMysql(LocalDate date, int index, String ticker,String close){
-
         try{
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("insert into "+ ticker +" values('" + date + "','" + index  + "','" + close+ "')on Duplicate key update inde="+ index +";");
@@ -118,5 +127,51 @@ public class Main { // key IVB25ADTVUERPRXD
                     results.getString(3)
             );
         }
+    }
+
+    public void start(Stage stage) throws Exception {
+        ResultSet results = null;
+        int avg = 0;
+
+        try {
+            connection = DriverManager.getConnection(url, usernameDB, passwordDB);
+            try {
+                results = connection.createStatement().executeQuery("SELECT * from " + ticker + ";");
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("false4");
+            }
+        } catch (Exception e) {
+
+            e.printStackTrace();
+            System.out.println("false3");
+        }
+
+        stage.setTitle("Line Chart Sample");
+        //defining the axes
+        final CategoryAxis date = new CategoryAxis();
+        final NumberAxis close = new NumberAxis();
+        date.setLabel("Number of Month");
+        //creating the chart
+        final LineChart<String,Number> lineChart =
+                new LineChart<String,Number>(date,close);
+
+        lineChart.setTitle("Stock Monitoring of "+ ticker);
+        //defining a series
+        XYChart.Series graph = new XYChart.Series();
+        XYChart.Series mittelwert = new XYChart.Series();
+        graph.setName("Aktien von " + ticker);
+        mittelwert.setName("xxx'er Schnitt von " + ticker);
+        //populating the series with data
+        while (results.next()) {
+            graph.getData().add(new XYChart.Data(results.getString(1), results.getString(3)));
+        }
+        lineChart.setCreateSymbols(false);
+
+        Scene scene  = new Scene(lineChart,1500,900);
+        lineChart.getData().add(graph);
+
+        stage.setScene(scene);
+        stage.show();
     }
 }
