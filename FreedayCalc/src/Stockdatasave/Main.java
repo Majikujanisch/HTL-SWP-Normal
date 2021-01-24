@@ -28,8 +28,9 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
     static Connection connection;
     static String url = "jdbc:mysql://localhost/Aktienkurse?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
     static String usernameDB="root";
-    static String passwordDB="";
+    static String passwordDB="f2idagAtc30U";
     static String ticker;
+    static int indexDB = 0;
 
     public static void main(String[] args) throws JSONException, MalformedURLException, IOException, ClassNotFoundException, SQLException {
         String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=", key = "IVB25ADTVUERPRXD";
@@ -51,12 +52,15 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         connectToMysql();
         createTableMysql(ticker);
 
-        for(int i = 0; i < 200; i++){
+        for(int i = 0; i < 1000; i++){
             try {
-                createDataMysql(date,i, ticker, json.getJSONObject(date.toString()).get("4. close").toString());
+
+                    createDataMysql(date, ticker, json.getJSONObject(date.toString()).get("4. close").toString(),json.getJSONObject(date.toString()).get("8. split coefficient").toString());
+
+
             }
             catch(JSONException e){
-                createDataMysql(date,i, ticker, "NULL");
+                createDataMysql(date, ticker, "NULL", "NULL");
             }
 
             date = date.minusDays(1);
@@ -87,21 +91,21 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         try{
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("create table if not exists "+ ticker +"(" +
-                    "Day varchar(10), inde int(4), close varchar(10), primary key(Day));");
+                    "Day varchar(10), close double(5,2), divident double(2,1),inde int, primary key(Day));");
 
         }catch(Exception e){
 
             System.out.println("false1");
         }
     }
-    public static void createDataMysql(LocalDate date, int index, String ticker,String close){
+    public static void createDataMysql(LocalDate date, String ticker,String close, String divident){
         try{
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
-            connection.createStatement().executeUpdate("insert into "+ ticker +" values('" + date + "','" + index  + "','" + close+ "')on Duplicate key update inde="+ index +";");
-
+            if(close != "NULL") {
+                indexDB++;
+                connection.createStatement().executeUpdate("insert into " + ticker + " values('" + date + "','" + Double.parseDouble(close)+ "','" + Double.parseDouble(divident) +"','"+indexDB+ "')on Duplicate key update close=" + close + ",inde =" + indexDB +";");
+            }
         }catch(Exception e){
-            e.printStackTrace();
-            System.out.println("false2");
         }
     }
     public static void showMysql(String ticker) throws SQLException {
@@ -119,24 +123,27 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             e.printStackTrace();
             System.out.println("false3");
         }
-        System.out.printf("%10s   %10s   %10s %n", "Datum", "Index", "Close");
+        //System.out.printf("%10s   %10s", "Datum", "Close");
         while (results.next()) {
-            System.out.printf("%10s   %10s   %10s%n",
-                    results.getString(1),
-                    results.getInt(2),
-                    results.getString(3)
-            );
+            System.out.printf(results.getString(1));
+            System.out.printf("   ");
+            System.out.printf(results.getString(2));
+            System.out.printf("  ");
+            System.out.println(results.getString(4));
+
         }
     }
 
     public void start(Stage stage) throws Exception {
         ResultSet results = null;
+        ResultSet resultavg=null;
         int avg = 0;
+        int index1 = 1, index2 = 200;
+
 
         try {
-            connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             try {
-                results = connection.createStatement().executeQuery("SELECT * from " + ticker + ";");
+                results = connection.createStatement().executeQuery("SELECT * from " + ticker + " where inde < 200;");
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("false4");
@@ -161,15 +168,23 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         XYChart.Series graph = new XYChart.Series();
         XYChart.Series mittelwert = new XYChart.Series();
         graph.setName("Aktien von " + ticker);
-        mittelwert.setName("xxx'er Schnitt von " + ticker);
+        mittelwert.setName("200'er Schnitt von " + ticker);
         //populating the series with data
         while (results.next()) {
-            graph.getData().add(new XYChart.Data(results.getString(1), results.getString(3)));
+            graph.getData().add(new XYChart.Data(results.getString(1), results.getDouble(2)));
+            resultavg = connection.createStatement().executeQuery("SELECT avg(close) from " + ticker + " where inde <="+index2+"&& inde >="+index1+";");
+            while(resultavg.next()){
+                mittelwert.getData().add(new XYChart.Data(results.getString(1), resultavg.getDouble(1)));
+            }
+            index1++;
+            index2++;
         }
+
         lineChart.setCreateSymbols(false);
 
         Scene scene  = new Scene(lineChart,1500,900);
         lineChart.getData().add(graph);
+        lineChart.getData().add(mittelwert);
 
         stage.setScene(scene);
         stage.show();
