@@ -21,6 +21,7 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.stage.Stage;
+import java.time.temporal.ChronoUnit;
 
 public class Main extends Application{ // key IVB25ADTVUERPRXD
     static Connection connection;
@@ -48,6 +49,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         //Json abspeichern
         JSONObject json = new JSONObject(IOUtils.toString(new URL(URL), Charset.forName("UTF-8")));
         LocalDate date = LocalDate.parse((json.getJSONObject("Meta Data").get("3. Last Refreshed")).toString());
+        LocalDate now = LocalDate.now();
         json = json.getJSONObject("Time Series (Daily)");
 
         //MySQL
@@ -55,7 +57,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         createTableMysql(ticker);
         insertDataInDB(LocalDate.now(), ticker);
 
-        for(int i = 0; i < 1000; i++){
+        for(int i = 0; i < daysDifference(ticker); i++){
             try {
                     double coeffizient=Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
 
@@ -150,6 +152,26 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             System.out.println(results.getString(4));
 
         }
+    }
+    public static int daysDifference(String ticker) throws SQLException {
+        LocalDate lastday = null;
+        int differenz = 0;
+        ResultSet results = null;
+        try {
+            connection = DriverManager.getConnection(url, usernameDB, passwordDB);
+            try {
+                results = connection.createStatement().executeQuery("SELECT "+ticker+" from UpdateDates;");
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("false4");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("false3");
+        }
+        lastday = (results.getDate(2)).toLocalDate();
+        differenz = (int)ChronoUnit.DAYS.between(lastday, LocalDate.now());
+        return differenz;
     }
 
     public void start(Stage stage) throws Exception {
