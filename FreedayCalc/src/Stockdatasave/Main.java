@@ -57,14 +57,14 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
         for(int i = 0; i < 1000; i++){
             try {
-                    double coeffizient=Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString())/divident;
-                    insertDataInDB(date, ticker, json.getJSONObject(date.toString()).get("4. close").toString(), String.valueOf(coeffizient));
-                    if(Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) > 1){
+                    double coeffizient=Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
+
+                    if(Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) > 1 || Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) < 1){
                         divident = divident * Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
                     }
-                if(Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) < 1){
-                    divident = divident * Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
-                }
+                    double close = Double.parseDouble(json.getJSONObject(date.toString()).get("4. close").toString())/divident;
+
+                insertDataInDB(date, ticker, String.valueOf(close), String.valueOf(coeffizient));
 
 
             }
