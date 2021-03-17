@@ -191,7 +191,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         while (results.next()) {
             LocalDate date1 = results.getDate(1).toLocalDate();
             graph.getData().add(new XYChart.Data(results.getString(1), results.getDouble(2)));
-            resultavg = connection.createStatement().executeQuery("SELECT avg(close) from " + ticker + " where date > "+ (date1.minusDays(200)) +" and date <"+date1+";");
+            resultavg = connection.createStatement().executeQuery("SELECT avg(close) from " + ticker + " where day > "+ java.sql.Date.valueOf( (date1.minusDays(200) )) +" and day <"+ java.sql.Date.valueOf(date1)+";");
             while(resultavg.next()){
                 mittelwert.getData().add(new XYChart.Data(results.getString(1), resultavg.getDouble(1)));
             }
