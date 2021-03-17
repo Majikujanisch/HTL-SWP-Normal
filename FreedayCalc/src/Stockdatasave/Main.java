@@ -38,6 +38,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
     public static void main(String[] args) throws JSONException, MalformedURLException, IOException, ClassNotFoundException, SQLException {
         String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=", key = "IVB25ADTVUERPRXD";
         Scanner user = new Scanner(System.in);
+        int updatedays;
 
 
         //URL Abfrage und zusammenbau
@@ -45,6 +46,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         ticker = user.next();
         URL = buildURL(URL, ticker, key);
         System.out.println(URL);
+
 
         //Json abspeichern
         JSONObject json = new JSONObject(IOUtils.toString(new URL(URL), Charset.forName("UTF-8")));
@@ -56,8 +58,13 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         connectToMysql();
         createTableMysql(ticker);
         insertDataInDB(LocalDate.now(), ticker);
-
-        for(int i = 0; i < daysDifference(ticker); i++){
+        if(daysDifference(ticker) > 0){
+            updatedays = daysDifference(ticker);
+        }
+        else{
+            updatedays = 1000;
+        }
+        for(int i = 0; i < updatedays; i++){
             try {
                     double coeffizient=Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
 
@@ -160,7 +167,8 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         try {
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             try {
-                results = connection.createStatement().executeQuery("SELECT "+ticker+" from UpdateDates;");
+
+                results = connection.createStatement().executeQuery("SELECT lastUpdate from UpdateDates where ticker = '"+ticker+"';");
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("false4");
@@ -169,8 +177,10 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             e.printStackTrace();
             System.out.println("false3");
         }
-        lastday = (results.getDate(2)).toLocalDate();
-        differenz = (int)ChronoUnit.DAYS.between(lastday, LocalDate.now());
+        while(results.next()) {
+            lastday = (results.getDate("lastUpdate")).toLocalDate();
+            differenz = (int) ChronoUnit.DAYS.between(lastday, LocalDate.now());
+        }
         return differenz;
     }
 
