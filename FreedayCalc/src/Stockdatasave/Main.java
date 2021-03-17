@@ -1,12 +1,10 @@
 package Stockdatasave;
 
-import com.mysql.cj.protocol.Resultset;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -26,11 +24,15 @@ import javafx.stage.Stage;
 
 public class Main extends Application{ // key IVB25ADTVUERPRXD
     static Connection connection;
-    static String url = "jdbc:mysql://localhost/Aktienkurse?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
-    static String usernameDB="root";
-    static String passwordDB="f2idagAtc30U";
+    /*
+    String.format("jdbc:mysql://%s/%s?user=%s&password=%s&serverTimezone=UTC",
+						m_hostname, m_database, m_user, m_password));
+     */
+    static String url = "jdbc:mysql://localhost:3305/Aktienkurse?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+    static String usernameDB="Majikujanisch";
+    static String passwordDB="C4QvI3PRllLGen82eV4odV";
     static String ticker;
-    static int indexDB = 0;
+    static double divident = 1;
 
     public static void main(String[] args) throws JSONException, MalformedURLException, IOException, ClassNotFoundException, SQLException {
         String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=", key = "IVB25ADTVUERPRXD";
@@ -51,21 +53,27 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         //MySQL
         connectToMysql();
         createTableMysql(ticker);
+        insertDataInDB(LocalDate.now(), ticker);
 
         for(int i = 0; i < 1000; i++){
             try {
-
-                    createDataMysql(date, ticker, json.getJSONObject(date.toString()).get("4. close").toString(),json.getJSONObject(date.toString()).get("8. split coefficient").toString());
+                    double coeffizient=Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString())/divident;
+                    insertDataInDB(date, ticker, json.getJSONObject(date.toString()).get("4. close").toString(), String.valueOf(coeffizient));
+                    if(Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) > 1){
+                        divident = divident * Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
+                    }
+                if(Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) < 1){
+                    divident = divident * Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
+                }
 
 
             }
             catch(JSONException e){
-                createDataMysql(date, ticker, "NULL", "NULL");
+                insertDataInDB(date, ticker, "NULL", "NULL");
             }
 
             date = date.minusDays(1);
         }
-        showMysql(ticker);
         launch(args);
     }
 
@@ -79,6 +87,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             Class.forName("com.mysql.cj.jdbc.Driver").getDeclaredConstructor().newInstance();
 
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
+            System.out.println("Connected to database");
             return true;
 
 
@@ -91,22 +100,31 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         try{
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("create table if not exists "+ ticker +"(" +
-                    "Day varchar(10), close double(5,2), divident double(2,1),inde int, primary key(Day));");
+                    "Day date, close double(5,2), divident double(2,1), primary key(Day));");
+            connection.createStatement().executeUpdate("create table if not exists UpdateDates (ticker varchar(10) ,lastUpdate date, primary key(ticker));");
 
         }catch(Exception e){
 
             System.out.println("false1");
         }
     }
-    public static void createDataMysql(LocalDate date, String ticker,String close, String divident){
+    public static void insertDataInDB(LocalDate date, String ticker, String close, String divident){
         try{
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             if(close != "NULL") {
-                indexDB++;
-                connection.createStatement().executeUpdate("insert into " + ticker + " values('" + date + "','" + Double.parseDouble(close)+ "','" + Double.parseDouble(divident) +"','"+indexDB+ "')on Duplicate key update close=" + close + ",inde =" + indexDB +";");
+                connection.createStatement().executeUpdate("insert into " + ticker + " values('" + date + "','" + Double.parseDouble(close)+ "','" + Double.parseDouble(divident) +"')on Duplicate key update close=" + close + ";");
             }
         }catch(Exception e){
         }
+    }
+    public static void insertDataInDB(LocalDate date, String ticker){
+        try{
+            connection = DriverManager.getConnection(url, usernameDB, passwordDB);
+            connection.createStatement().executeUpdate("insert into UpdateDates values ('" + ticker + "','"+date+"');");
+        }catch(Exception e){
+
+        }
+
     }
     public static void showMysql(String ticker) throws SQLException {
         ResultSet results = null;
@@ -143,7 +161,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
         try {
             try {
-                results = connection.createStatement().executeQuery("SELECT * from " + ticker + " where inde < 200;");
+                results = connection.createStatement().executeQuery("SELECT * from " + ticker + ";");
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("false4");
@@ -171,8 +189,9 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         mittelwert.setName("200'er Schnitt von " + ticker);
         //populating the series with data
         while (results.next()) {
+            LocalDate date1 = results.getDate(1).toLocalDate();
             graph.getData().add(new XYChart.Data(results.getString(1), results.getDouble(2)));
-            resultavg = connection.createStatement().executeQuery("SELECT avg(close) from " + ticker + " where inde <="+index2+"&& inde >="+index1+";");
+            resultavg = connection.createStatement().executeQuery("SELECT avg(close) from " + ticker + " where date > "+ (date1.minusDays(200)) +" and date <"+date1+";");
             while(resultavg.next()){
                 mittelwert.getData().add(new XYChart.Data(results.getString(1), resultavg.getDouble(1)));
             }
@@ -182,7 +201,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
         lineChart.setCreateSymbols(false);
 
-        Scene scene  = new Scene(lineChart,1500,900);
+        Scene scene  = new Scene(lineChart,800,450);
         lineChart.getData().add(graph);
         lineChart.getData().add(mittelwert);
 
