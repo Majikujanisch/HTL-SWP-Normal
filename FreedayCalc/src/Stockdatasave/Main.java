@@ -4,6 +4,9 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -22,8 +25,9 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.stage.Stage;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.TimeUnit;
 
-public class Main extends Application{ // key IVB25ADTVUERPRXD
+public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
     static Connection connection;
     /*
     String.format("jdbc:mysql://%s/%s?user=%s&password=%s&serverTimezone=UTC",
@@ -38,52 +42,60 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
     public static void main(String[] args) throws JSONException, MalformedURLException, IOException, ClassNotFoundException, SQLException {
         String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=", key = "IVB25ADTVUERPRXD";
         Scanner user = new Scanner(System.in);
+        List<String> tickerlist = new ArrayList<String>();
+        String txt = "ticker";
+        String URL1 = null;
+        createTXT(txt);
+        tickerlist = loadTicker(txt);
         int updatedays;
 
+        for(String ticker1 : tickerlist) {
+            ticker = ticker1;
+            //URL Abfrage und zusammenbau
+            /* System.out.println("Welchen Ticker wollen Sie abfragen?");
+            ticker = user.next(); */
+            URL1 = buildURL(URL, ticker, key);
+            System.out.println(URL1);
 
-        //URL Abfrage und zusammenbau
-        System.out.println("Welchen Ticker wollen Sie abfragen?");
-        ticker = user.next();
-        URL = buildURL(URL, ticker, key);
-        System.out.println(URL);
 
+            //Json abspeichern
+            JSONObject json = new JSONObject(IOUtils.toString(new URL(URL1), Charset.forName("UTF-8")));
+            LocalDate date = LocalDate.parse((json.getJSONObject("Meta Data").get("3. Last Refreshed")).toString());
+            LocalDate now = LocalDate.now();
+            json = json.getJSONObject("Time Series (Daily)");
 
-        //Json abspeichern
-        JSONObject json = new JSONObject(IOUtils.toString(new URL(URL), Charset.forName("UTF-8")));
-        LocalDate date = LocalDate.parse((json.getJSONObject("Meta Data").get("3. Last Refreshed")).toString());
-        LocalDate now = LocalDate.now();
-        json = json.getJSONObject("Time Series (Daily)");
+            //MySQL
+            connectToMysql();
+            createTableMysql(ticker);
+            insertDataInDB(LocalDate.now(), ticker);
+            if (daysDifference(ticker) >= 0) {
+                updatedays = daysDifference(ticker);
+            } else {
+                updatedays = 2000;
+            }
+            for (int i = 0; i < updatedays; i++) {
+                try {
+                    double coeffizient = Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
 
-        //MySQL
-        connectToMysql();
-        createTableMysql(ticker);
-        insertDataInDB(LocalDate.now(), ticker);
-        if(daysDifference(ticker) > 0){
-            updatedays = daysDifference(ticker);
-        }
-        else{
-            updatedays = 1000;
-        }
-        for(int i = 0; i < updatedays; i++){
-            try {
-                    double coeffizient=Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
-
-                    if(Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) > 1 || Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) < 1){
+                    if (Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) > 1 || Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) < 1) {
                         divident = divident * Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
                     }
-                    double close = Double.parseDouble(json.getJSONObject(date.toString()).get("4. close").toString())/divident;
+                    double close = Double.parseDouble(json.getJSONObject(date.toString()).get("4. close").toString()) / divident;
 
-                insertDataInDB(date, ticker, String.valueOf(close), String.valueOf(coeffizient));
+                    insertDataInDB(date, ticker, String.valueOf(close), String.valueOf(coeffizient));
 
 
+                } catch (JSONException e) {
+                    insertDataInDB(date, ticker, "NULL", "NULL");
+                }
+
+                date = date.minusDays(1);
             }
-            catch(JSONException e){
-                insertDataInDB(date, ticker, "NULL", "NULL");
-            }
+            System.out.println("Wait for 12 sec");
+            waitsec(12);
 
-            date = date.minusDays(1);
         }
-        launch(args);
+        //launch(args);
     }
 
 
@@ -125,9 +137,11 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             }
         }catch(Exception e){
         }
+        System.out.println("insert");
     }
     public static void insertDataInDB(LocalDate date, String ticker){
         try{
+
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("insert into UpdateDates values ('" + ticker + "','"+date+"');");
         }catch(Exception e){
@@ -162,7 +176,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
     }
     public static int daysDifference(String ticker) throws SQLException {
         LocalDate lastday = null;
-        int differenz = 0;
+        int differenz = -1;
         ResultSet results = null;
         try {
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
@@ -179,12 +193,18 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         }
         while(results.next()) {
             lastday = (results.getDate("lastUpdate")).toLocalDate();
-            differenz = (int) ChronoUnit.DAYS.between(lastday, LocalDate.now());
+            if(lastday != LocalDate.now()){
+                differenz = -1;
+            }
+            else{
+
+                differenz = (int) ChronoUnit.DAYS.between(lastday, LocalDate.now());
+            }
         }
         return differenz;
     }
 
-    public void start(Stage stage) throws Exception {
+    /*public void start(Stage stage) throws Exception {
         ResultSet results = null;
         ResultSet resultavg=null;
         int avg = 0;
@@ -240,4 +260,56 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         stage.setScene(scene);
         stage.show();
     }
+*/
+    public static ArrayList<String> loadTicker(String filename) {
+        ArrayList<String> ticker = new ArrayList<String>();
+        String path = "FreedayCalc/src/Stockdatasave/"+filename + ".txt";
+        File file = new File(path);
+
+        if (!file.canRead() || !file.isFile())
+            System.exit(0);
+
+        BufferedReader in = null;
+        try {
+            in = new BufferedReader(new FileReader(path));
+            String zeile = null;
+            while ((zeile = in.readLine()) != null) {
+                ticker.add(zeile);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (in != null)
+                try {
+                    in.close();
+                } catch (IOException e) {
+                }
+        }
+        return ticker;
+    }
+    public static boolean createTXT (String name){
+        try {
+            File myObj = new File("FreedayCalc/src/Stockdatasave/"+name + ".txt");
+            if (myObj.createNewFile()) {
+                System.out.println("File created: " + myObj.getName());
+                return true;
+            } else {
+                System.out.println("File already exists.");
+                return false;
+            }
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+        return false;
+    }
+    public static void waitsec(int time){
+        try {
+            TimeUnit.SECONDS.sleep(12);
+        }
+        catch(Exception e){
+            System.out.println("schlafen nicht möglich!");
+        }
+    }
+
 }
