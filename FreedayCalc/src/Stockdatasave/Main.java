@@ -1,5 +1,7 @@
 package Stockdatasave;
 
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.image.WritableImage;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,6 +26,8 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.stage.Stage;
+
+import javax.imageio.ImageIO;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
@@ -48,7 +52,7 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
         createTXT(txt);
         tickerlist = loadTicker(txt);
         int updatedays;
-
+        createDirec();
         for(String ticker1 : tickerlist) {
             ticker = ticker1;
             //URL Abfrage und zusammenbau
@@ -58,16 +62,18 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
             System.out.println(URL1);
 
 
+
             //Json abspeichern
             JSONObject json = new JSONObject(IOUtils.toString(new URL(URL1), Charset.forName("UTF-8")));
             LocalDate date = LocalDate.parse((json.getJSONObject("Meta Data").get("3. Last Refreshed")).toString());
-            LocalDate now = LocalDate.now();
             json = json.getJSONObject("Time Series (Daily)");
 
             //MySQL
             connectToMysql();
             createTableMysql(ticker);
-            insertDataInDB(LocalDate.now(), ticker);
+
+
+
             if (daysDifference(ticker) >= 0) {
                 updatedays = daysDifference(ticker);
             } else {
@@ -85,12 +91,14 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
                     insertDataInDB(date, ticker, String.valueOf(close), String.valueOf(coeffizient));
 
 
+
                 } catch (JSONException e) {
                     insertDataInDB(date, ticker, "NULL", "NULL");
                 }
 
                 date = date.minusDays(1);
             }
+            insertDataInDB(LocalDate.now(), ticker);
             System.out.println("Wait for 12 sec");
             waitsec(12);
 
@@ -137,13 +145,15 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
             }
         }catch(Exception e){
         }
+
         System.out.println("insert");
+
     }
     public static void insertDataInDB(LocalDate date, String ticker){
         try{
-
+            System.out.println(date);
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
-            connection.createStatement().executeUpdate("insert into UpdateDates values ('" + ticker + "','"+date+"');");
+            connection.createStatement().executeUpdate("insert into UpdateDates values ('" + ticker + "','"+date+"') on Duplicate key update lastupdate='"+date+"';");
         }catch(Exception e){
 
         }
@@ -193,7 +203,7 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
         }
         while(results.next()) {
             lastday = (results.getDate("lastUpdate")).toLocalDate();
-            if(lastday != LocalDate.now()){
+            if(lastday == LocalDate.now()){
                 differenz = -1;
             }
             else{
@@ -204,7 +214,7 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
         return differenz;
     }
 
-    /*public void start(Stage stage) throws Exception {
+    public void start(Stage stage) throws Exception {
         ResultSet results = null;
         ResultSet resultavg=null;
         int avg = 0;
@@ -258,9 +268,25 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
         lineChart.getData().add(mittelwert);
 
         stage.setScene(scene);
-        stage.show();
+        //stage.show();
+        saveAsPNG(scene, "FreedayCalc/src/Stockdatasave/Bilder/" + LocalDate.now() + ticker + ".png" );
     }
-*/
+    public static void saveAsPNG(Scene scene, String filename){
+        WritableImage image = scene.snapshot(null);
+        File file = new File(filename);
+        try{
+            ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", file);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+     }
+    public static void createDirec(){
+        File dir = new File("FreedayCalc/src/Stockdatasave/Bilder");
+        if (dir.mkdir()){
+            System.out.println("Ordner Erstellt!");
+        }
+    }
+
     public static ArrayList<String> loadTicker(String filename) {
         ArrayList<String> ticker = new ArrayList<String>();
         String path = "FreedayCalc/src/Stockdatasave/"+filename + ".txt";
