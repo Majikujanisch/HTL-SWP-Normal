@@ -31,7 +31,7 @@ import javax.imageio.ImageIO;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
-public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
+public class Main extends Application{ // key IVB25ADTVUERPRXD
     static Connection connection;
     /*
     String.format("jdbc:mysql://%s/%s?user=%s&password=%s&serverTimezone=UTC",
@@ -103,13 +103,11 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
             waitsec(12);
 
         }
-        //launch(args);
+        launch(args);
     }
 
 
-    public static String buildURL(String url, String ticker, String key){
-        return url = url + ticker.toUpperCase() + "&outputsize=full&apikey="+key;
-    }
+
     public static boolean connectToMysql() throws ClassNotFoundException {
 
         try {
@@ -217,59 +215,69 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
     public void start(Stage stage) throws Exception {
         ResultSet results = null;
         ResultSet resultavg=null;
-        int avg = 0;
-        int index1 = 1, index2 = 200;
+        List<String> tickerlist = new ArrayList<String>();
+        String txt = "ticker";
+        createTXT(txt);
+        tickerlist = loadTicker(txt);
+        for(String ticker1 : tickerlist) {
+            ticker = ticker1;
+            int avg = 0;
+            int index1 = 1, index2 = 200;
 
 
-        try {
             try {
-                results = connection.createStatement().executeQuery("SELECT * from " + ticker + ";");
+                try {
+                    results = connection.createStatement().executeQuery("SELECT * from " + ticker + ";");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.out.println("false4");
+                }
             } catch (Exception e) {
+
                 e.printStackTrace();
-                System.out.println("false4");
+                System.out.println("false3");
             }
-        } catch (Exception e) {
 
-            e.printStackTrace();
-            System.out.println("false3");
-        }
+            stage.setTitle("Line Chart Sample");
+            //defining the axes
+            final CategoryAxis date = new CategoryAxis();
+            final NumberAxis close = new NumberAxis();
+            date.setLabel("Number of Month");
+            //creating the chart
+            final LineChart<String, Number> lineChart =
+                    new LineChart<String, Number>(date, close);
 
-        stage.setTitle("Line Chart Sample");
-        //defining the axes
-        final CategoryAxis date = new CategoryAxis();
-        final NumberAxis close = new NumberAxis();
-        date.setLabel("Number of Month");
-        //creating the chart
-        final LineChart<String,Number> lineChart =
-                new LineChart<String,Number>(date,close);
-
-        lineChart.setTitle("Stock Monitoring of "+ ticker);
-        //defining a series
-        XYChart.Series graph = new XYChart.Series();
-        XYChart.Series mittelwert = new XYChart.Series();
-        graph.setName("Aktien von " + ticker);
-        mittelwert.setName("200'er Schnitt von " + ticker);
-        //populating the series with data
-        while (results.next()) {
-            LocalDate date1 = results.getDate(1).toLocalDate();
-            graph.getData().add(new XYChart.Data(results.getString(1), results.getDouble(2)));
-            resultavg = connection.createStatement().executeQuery("SELECT avg(close) from " + ticker + " where day > "+ java.sql.Date.valueOf( (date1.minusDays(200) )) +" and day <"+ java.sql.Date.valueOf(date1)+";");
-            while(resultavg.next()){
-                mittelwert.getData().add(new XYChart.Data(results.getString(1), resultavg.getDouble(1)));
+            lineChart.setTitle("Stock Monitoring of " + ticker);
+            //defining a series
+            XYChart.Series graph = new XYChart.Series();
+            XYChart.Series mittelwert = new XYChart.Series();
+            graph.setName("Aktien von " + ticker);
+            mittelwert.setName("200'er Schnitt von " + ticker);
+            //populating the series with data
+            while (results.next()) {
+                LocalDate date1 = results.getDate(1).toLocalDate();
+                graph.getData().add(new XYChart.Data(results.getString(1), results.getDouble(2)));
+                resultavg = connection.createStatement().executeQuery("SELECT avg(close) from " + ticker + " where day > " + java.sql.Date.valueOf((date1.minusDays(200))) + " and day <" + java.sql.Date.valueOf(date1) + ";");
+                while (resultavg.next()) {
+                    mittelwert.getData().add(new XYChart.Data(results.getString(1), resultavg.getDouble(1)));
+                }
+                index1++;
+                index2++;
             }
-            index1++;
-            index2++;
+
+            lineChart.setCreateSymbols(false);
+
+            Scene scene = new Scene(lineChart, 800, 450);
+            lineChart.getData().add(graph);
+            lineChart.getData().add(mittelwert);
+
+            stage.setScene(scene);
+            //stage.show();
+
+            saveAsPNG(scene, "FreedayCalc/src/Stockdatasave/Bilder/" + LocalDate.now() + ticker.toUpperCase() + ".png");
         }
-
-        lineChart.setCreateSymbols(false);
-
-        Scene scene  = new Scene(lineChart,800,450);
-        lineChart.getData().add(graph);
-        lineChart.getData().add(mittelwert);
-
-        stage.setScene(scene);
-        //stage.show();
-        saveAsPNG(scene, "FreedayCalc/src/Stockdatasave/Bilder/" + LocalDate.now() + ticker + ".png" );
+        stage.show();
+        stage.close();
     }
     public static void saveAsPNG(Scene scene, String filename){
         WritableImage image = scene.snapshot(null);
@@ -287,6 +295,9 @@ public class Main /*extends Application*/{ // key IVB25ADTVUERPRXD
         }
     }
 
+    public static String buildURL(String url, String ticker, String key){
+        return url = url + ticker.toUpperCase() + "&outputsize=full&apikey="+key;
+    }
     public static ArrayList<String> loadTicker(String filename) {
         ArrayList<String> ticker = new ArrayList<String>();
         String path = "FreedayCalc/src/Stockdatasave/"+filename + ".txt";
