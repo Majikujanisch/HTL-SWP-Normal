@@ -33,28 +33,32 @@ import java.util.concurrent.TimeUnit;
 
 public class Main extends Application{ // key IVB25ADTVUERPRXD
     static Connection connection;
-    /*
-    String.format("jdbc:mysql://%s/%s?user=%s&password=%s&serverTimezone=UTC",
-						m_hostname, m_database, m_user, m_password));
-     */
-    static String url = "jdbc:mysql://localhost:3305/Aktienkurse?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
-    static String usernameDB="Majikujanisch";
-    static String passwordDB="C4QvI3PRllLGen82eV4odV";
+    static String port;
+    static String url;
+    static String usernameDB;
+    static String passwordDB;
     static String ticker;
+    static String key;
+    static String path = "FreedayCalc/src/Stockdatasave/";
     static double divident = 1;
 
     public static void main(String[] args) throws JSONException, MalformedURLException, IOException, ClassNotFoundException, SQLException {
-        String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=", key = "IVB25ADTVUERPRXD";
+        String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=";
         Scanner user = new Scanner(System.in);
         List<String> tickerlist = new ArrayList<String>();
         String txt = "ticker";
         String URL1 = null;
         createTXT(txt);
-        tickerlist = loadTicker(txt);
+        createTXT("UserDates");
+        tickerlist = loadTxt(txt);
+        setUserdata();
         int updatedays;
         createDirec();
         for(String ticker1 : tickerlist) {
+            divident = 1;
             ticker = ticker1;
+            double divi = 1;
+            double cor = 1;
             //URL Abfrage und zusammenbau
             /* System.out.println("Welchen Ticker wollen Sie abfragen?");
             ticker = user.next(); */
@@ -77,23 +81,34 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             if (daysDifference(ticker) >= 0) {
                 updatedays = daysDifference(ticker);
             } else {
-                updatedays = 2000;
+                updatedays = 4000;
             }
             for (int i = 0; i < updatedays; i++) {
                 try {
+                    boolean happened = false;
                     double coeffizient = Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
 
-                    if (Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) > 1 || Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString()) < 1) {
-                        divident = divident * Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
+                    if (coeffizient > 1 || coeffizient < 1) {
+                        divident = divident * coeffizient;
+                        happened  = true;
                     }
-                    double close = Double.parseDouble(json.getJSONObject(date.toString()).get("4. close").toString()) / divident;
 
-                    insertDataInDB(date, ticker, String.valueOf(close), String.valueOf(coeffizient));
+                    double close = Double.parseDouble(json.getJSONObject(date.toString()).get("4. close").toString());
 
+
+                    if(!happened){
+                         cor = close / divident;
+                    }
+                    else{
+                         cor = close / divi;
+                    }
+                    insertDataInDB(date, ticker, String.valueOf(close), String.valueOf(coeffizient),String.valueOf(cor));
+
+                    divi=divident;
 
 
                 } catch (JSONException e) {
-                    insertDataInDB(date, ticker, "NULL", "NULL");
+                    insertDataInDB(date, ticker, "NULL", "NULL", "NULL");
                 }
 
                 date = date.minusDays(1);
@@ -104,6 +119,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
         }
         launch(args);
+        disconnectMysql();
     }
 
 
@@ -123,11 +139,27 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             return false;
         }
     }
+    public static boolean disconnectMysql() throws ClassNotFoundException {
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver").getDeclaredConstructor().newInstance();
+
+            connection.close();
+            System.out.println("disconnected from database");
+            return true;
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public static void createTableMysql(String ticker){
         try{
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("create table if not exists "+ ticker +"(" +
-                    "Day date, close double(5,2), divident double(2,1), primary key(Day));");
+                    "Day date, close double(5,2), divident double(2,1), splitcor double(5,2), primary key(Day));");
             connection.createStatement().executeUpdate("create table if not exists UpdateDates (ticker varchar(10) ,lastUpdate date, primary key(ticker));");
 
         }catch(Exception e){
@@ -135,16 +167,18 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             System.out.println("false1");
         }
     }
-    public static void insertDataInDB(LocalDate date, String ticker, String close, String divident){
+    public static void insertDataInDB(LocalDate date, String ticker, String close, String divident, String cor){
         try{
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             if(close != "NULL") {
-                connection.createStatement().executeUpdate("insert into " + ticker + " values('" + date + "','" + Double.parseDouble(close)+ "','" + Double.parseDouble(divident) +"')on Duplicate key update close=" + close + ";");
+                connection.createStatement().executeUpdate("insert into " + ticker + " values('" + date + "','" + Double.parseDouble(close)+ "','" + Double.parseDouble(divident) +"','"+cor+"')on Duplicate key update close=" + close + ";");
+                //System.out.println("insert");
             }
         }catch(Exception e){
+            System.out.println("noinsert");
         }
 
-        System.out.println("insert");
+
 
     }
     public static void insertDataInDB(LocalDate date, String ticker){
@@ -153,7 +187,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("insert into UpdateDates values ('" + ticker + "','"+date+"') on Duplicate key update lastupdate='"+date+"';");
         }catch(Exception e){
-
+            System.out.println("NOinsert");
         }
 
     }
@@ -218,12 +252,9 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         List<String> tickerlist = new ArrayList<String>();
         String txt = "ticker";
         createTXT(txt);
-        tickerlist = loadTicker(txt);
+        tickerlist = loadTxt(txt);
         for(String ticker1 : tickerlist) {
             ticker = ticker1;
-            int avg = 0;
-            int index1 = 1, index2 = 200;
-
 
             try {
                 try {
@@ -247,7 +278,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             final LineChart<String, Number> lineChart =
                     new LineChart<String, Number>(date, close);
 
-            lineChart.setTitle("Stock Monitoring of " + ticker);
+            lineChart.setTitle("Stock Monitoring of " + ticker.toUpperCase());
             //defining a series
             XYChart.Series graph = new XYChart.Series();
             XYChart.Series mittelwert = new XYChart.Series();
@@ -256,13 +287,11 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             //populating the series with data
             while (results.next()) {
                 LocalDate date1 = results.getDate(1).toLocalDate();
-                graph.getData().add(new XYChart.Data(results.getString(1), results.getDouble(2)));
-                resultavg = connection.createStatement().executeQuery("SELECT avg(close) from " + ticker + " where day > " + java.sql.Date.valueOf((date1.minusDays(200))) + " and day <" + java.sql.Date.valueOf(date1) + ";");
+                graph.getData().add(new XYChart.Data(results.getString(1), results.getDouble(4)));
+                resultavg = connection.createStatement().executeQuery("SELECT avg(splitcor) from " + ticker + " where day > '" + java.sql.Date.valueOf((date1.minusDays(200))) + "' and day < '" + java.sql.Date.valueOf(date1) + "';");
                 while (resultavg.next()) {
                     mittelwert.getData().add(new XYChart.Data(results.getString(1), resultavg.getDouble(1)));
                 }
-                index1++;
-                index2++;
             }
 
             lineChart.setCreateSymbols(false);
@@ -274,7 +303,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             stage.setScene(scene);
             //stage.show();
 
-            saveAsPNG(scene, "FreedayCalc/src/Stockdatasave/Bilder/" + LocalDate.now() + ticker.toUpperCase() + ".png");
+            saveAsPNG(scene, path + "Bilder/" + LocalDate.now().toString()+"/" + ticker.toUpperCase() + ".png");
         }
         stage.show();
         stage.close();
@@ -289,26 +318,26 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         }
      }
     public static void createDirec(){
-        File dir = new File("FreedayCalc/src/Stockdatasave/Bilder");
-        if (dir.mkdir()){
-            System.out.println("Ordner Erstellt!");
-        }
+        File dir = new File(path +"Bilder");
+        File dir2 = new File(path + "Bilder/" +LocalDate.now());
+        dir.mkdir();
+        dir2.mkdir();
     }
 
     public static String buildURL(String url, String ticker, String key){
         return url = url + ticker.toUpperCase() + "&outputsize=full&apikey="+key;
     }
-    public static ArrayList<String> loadTicker(String filename) {
+    public static ArrayList<String> loadTxt(String filename) {
         ArrayList<String> ticker = new ArrayList<String>();
-        String path = "FreedayCalc/src/Stockdatasave/"+filename + ".txt";
-        File file = new File(path);
+        String path1 = path +filename + ".txt";
+        File file = new File(path1);
 
         if (!file.canRead() || !file.isFile())
             System.exit(0);
 
         BufferedReader in = null;
         try {
-            in = new BufferedReader(new FileReader(path));
+            in = new BufferedReader(new FileReader(path1));
             String zeile = null;
             while ((zeile = in.readLine()) != null) {
                 ticker.add(zeile);
@@ -324,9 +353,20 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         }
         return ticker;
     }
+    public static void setUserdata(){
+        List<String> userdates = new ArrayList<String>();
+        userdates = loadTxt("UserDates");
+        port = userdates.get(0);
+        url = "jdbc:mysql://localhost:"+port+"/Aktienkurse?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+        usernameDB = userdates.get(1);
+        passwordDB = userdates.get(2);
+        key = userdates.get(3);
+
+    }
+
     public static boolean createTXT (String name){
         try {
-            File myObj = new File("FreedayCalc/src/Stockdatasave/"+name + ".txt");
+            File myObj = new File(path +name + ".txt");
             if (myObj.createNewFile()) {
                 System.out.println("File created: " + myObj.getName());
                 return true;
