@@ -39,33 +39,27 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
     static String passwordDB;
     static String ticker;
     static String key;
-    static String path = "FreedayCalc/src/Stockdatasave/";
-    static double divident = 1;
+    final static String path = "FreedayCalc/src/Stockdatasave/";
+    static int test = 0;
 
     public static void main(String[] args) throws JSONException, MalformedURLException, IOException, ClassNotFoundException, SQLException {
-        String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=";
-        Scanner user = new Scanner(System.in);
+        final String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=";
+        //Scanner user = new Scanner(System.in); // deprecated
         List<String> tickerlist = new ArrayList<String>();
-        String txt = "ticker";
-        String URL1 = null;
+
+        final String txt = "ticker";
         createTXT(txt);
         createTXT("UserDates");
         tickerlist = loadTxt(txt);
         setUserdata();
-        int updatedays;
         createDirec();
         for(String ticker1 : tickerlist) {
-            divident = 1;
             ticker = ticker1;
-            double divi = 1;
-            double cor = 1;
             //URL Abfrage und zusammenbau
             /* System.out.println("Welchen Ticker wollen Sie abfragen?");
             ticker = user.next(); */
-            URL1 = buildURL(URL, ticker, key);
+            String URL1 = buildURL(URL, ticker, key);
             System.out.println(URL1);
-
-
 
             //Json abspeichern
             JSONObject json = new JSONObject(IOUtils.toString(new URL(URL1), Charset.forName("UTF-8")));
@@ -77,12 +71,15 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             createTableMysql(ticker);
 
 
-
+            int updatedays;
             if (daysDifference(ticker) >= 0) {
                 updatedays = daysDifference(ticker);
             } else {
-                updatedays = 4000;
+                updatedays = 7000;
             }
+
+            double divi = 1.0;
+            double divident = 1.0;
             for (int i = 0; i < updatedays; i++) {
                 try {
                     boolean happened = false;
@@ -96,6 +93,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
                     double close = Double.parseDouble(json.getJSONObject(date.toString()).get("4. close").toString());
 
 
+                    double cor;
                     if(!happened){
                          cor = close / divident;
                     }
@@ -113,6 +111,8 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
                 date = date.minusDays(1);
             }
+
+            calc200();
             insertDataInDB(LocalDate.now(), ticker);
             System.out.println("Wait for 12 sec");
             waitsec(12);
@@ -159,7 +159,22 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         try{
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("create table if not exists "+ ticker +"(" +
-                    "Day date, close double(5,2), divident double(2,1), splitcor double(5,2), primary key(Day));");
+                    " Day date DEFAULT (CURRENT_DATE + INTERVAL 1 YEAR)," +
+                    " close double(6,2)," +
+                    " divident double(2,1)," +
+                    " splitcor double(5,2)," +
+                    " zweihundert double(5,2)," +
+                    " primary key(Day));");
+
+           /* String updateSql = String.format(
+                    "CREATE TABLE IF NOT EXISTS %s (" +
+                    "ticker VARCHAR(10)," +
+                            "lastUpdate DATE," +
+                            "PRIMARY KEY(ticker));",
+
+                    //eig variable.. is eleganter
+                    "UpdateDates"
+            );*/
             connection.createStatement().executeUpdate("create table if not exists UpdateDates (ticker varchar(10) ,lastUpdate date, primary key(ticker));");
 
         }catch(Exception e){
@@ -168,14 +183,29 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         }
     }
     public static void insertDataInDB(LocalDate date, String ticker, String close, String divident, String cor){
+
+
         try{
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
+
             if(close != "NULL") {
-                connection.createStatement().executeUpdate("insert into " + ticker + " values('" + date + "','" + Double.parseDouble(close)+ "','" + Double.parseDouble(divident) +"','"+cor+"')on Duplicate key update close=" + close + ";");
-                //System.out.println("insert");
+                double avg = 0;
+/*
+                String updateSql = String.format(
+                        "INSERT INTO %s VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE close=?;",
+
+                );
+*/
+                connection.createStatement().executeUpdate("insert into " + ticker + " values('" + java.sql.Date.valueOf(date) + "','"
+                        + Double.parseDouble(close)+ "','"
+                        + Double.parseDouble(divident) +"','"
+                        +cor+"','"
+                        + avg +"')on Duplicate key update close=" + close + ";");
+
             }
         }catch(Exception e){
             System.out.println("noinsert");
+            System.out.println(e);
         }
 
 
@@ -189,6 +219,40 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         }catch(Exception e){
             System.out.println("NOinsert");
         }
+
+    }
+    public static void calc200(){
+
+            //ResultSet resultavg=null;
+            ResultSet resultday = null;
+
+
+            try{
+                connection = DriverManager.getConnection(url, usernameDB, passwordDB);
+                resultday  = connection.createStatement().executeQuery("SELECT day from " + ticker +";");
+                while(resultday.next()) {
+                    LocalDate date = resultday.getDate(1).toLocalDate();
+                    double avg = 0.00;
+
+                    var resultavg = connection.createStatement().executeQuery("SELECT avg(splitcor) AS 'average' from " + ticker + " where day > '" + java.sql.Date.valueOf((date.minusDays(200))) + "' and day < '" + java.sql.Date.valueOf(date) + "';");
+                    resultavg.next();
+                    avg = resultavg.getDouble("average");
+
+
+                    var sqlCmd = "insert into " + ticker + " (Day,zweihundert)values('"+java.sql.Date.valueOf(date)+"','"+avg+"')on Duplicate key update zweihundert='" + avg + "';";
+                    System.out.println(sqlCmd);
+                        connection.createStatement().executeUpdate(sqlCmd);
+
+
+
+                    System.out.println(test);
+                    test++;
+                }
+            }catch(Exception e){
+                System.out.println("noinsert");
+                e.printStackTrace();
+
+            }
 
     }
     public static void showMysql(String ticker) throws SQLException {
@@ -288,7 +352,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             while (results.next()) {
                 LocalDate date1 = results.getDate(1).toLocalDate();
                 graph.getData().add(new XYChart.Data(results.getString(1), results.getDouble(4)));
-                resultavg = connection.createStatement().executeQuery("SELECT avg(splitcor) from " + ticker + " where day > '" + java.sql.Date.valueOf((date1.minusDays(200))) + "' and day < '" + java.sql.Date.valueOf(date1) + "';");
+                resultavg = connection.createStatement().executeQuery("SELECT zweihundert from " + ticker + " where day > '"+date1+ "';");
                 while (resultavg.next()) {
                     mittelwert.getData().add(new XYChart.Data(results.getString(1), resultavg.getDouble(1)));
                 }
@@ -371,7 +435,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
                 System.out.println("File created: " + myObj.getName());
                 return true;
             } else {
-                System.out.println("File already exists.");
+                System.out.println("File already exists: "+name);
                 return false;
             }
         } catch (IOException e) {
