@@ -31,7 +31,9 @@ public class testingSuite {
 
     public static void main(String[] args) {
         //List<LocalDate> date = new ArrayList<LocalDate>();
-        LocalDate currentday = LocalDate.of(2010,1,1);  // tempdate or second variable
+        LocalDate startdate = LocalDate.of(2010,1,1)
+        LocalDate currentday = startdate ;
+        SimulationData data = new SimulationData(false, 0,100000.0);
         setUserdata();
         int anzahl = 0;
         boolean bought = false;
@@ -50,9 +52,6 @@ public class testingSuite {
 
             //}
             //System.out.println(date);
-
-
-
             while (currentday.isAfter(LocalDate.now())) {
                 if (currentday.getDayOfWeek() != DayOfWeek.SATURDAY || currentday.getDayOfWeek() != DayOfWeek.SUNDAY) {
                     ResultSet res;
@@ -66,20 +65,13 @@ public class testingSuite {
                             anzahl *= divident;
                         }
                         if (close > _200er && !bought) {
-                            for (int i = 0; money > close; i++) {
-                                anzahl = i;
-                                bought = true;
-                                money = money - close;
-
-                            }
+                            data.buyStocks(close, _200er);
                             insertDataInDB(currentday, ticker, bought, anzahl, money);
                             System.out.println("bought");
                             System.out.println(anzahl);
                         }
                         if (close < _200er && bought) {
-                            money = close * anzahl;
-                            anzahl = 0;
-                            bought = false;
+                            data.sellStocks(close, _200er);
                             insertDataInDB(currentday, ticker, bought, anzahl, money);
                             System.out.println("sold");
                             System.out.println(money);
@@ -174,6 +166,8 @@ public class testingSuite {
         }
 
     }
+
+
 
     public static void setUserdata() {
         List<String> userdates = new ArrayList<String>();
