@@ -19,6 +19,7 @@ import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
 import java.text.DecimalFormat;
+import java.util.Scanner;
 
 public class testingSuite {
     static Connection connection;
@@ -33,7 +34,8 @@ public class testingSuite {
 //eingabe von nutzer, bei bestimmter parameter eingabe fehler ausgabe, auswertung der Strategien, 200er mit 3 Prozent
     public static void main(String[] args) {
         //List<LocalDate> date = new ArrayList<LocalDate>();
-        LocalDate startdate = LocalDate.of(2010,1,1);
+        LocalDate startdate;
+        startdate = switchStartdate();
         LocalDate currentday = startdate ;
         int allDaysBetwStartNdToday = calcDaysFromPeriod(startdate.until(LocalDate.now())); //berechnungsmethode um alle tage zu erhalten
         double tempclose = 0;
@@ -41,6 +43,7 @@ public class testingSuite {
         SimulationData dataBuyHold = new SimulationData(false,false,  0,100000.0);
         SimulationData data2003 = new SimulationData(false, 0, 100000.0);
         setUserdata();
+
         try{
             connectToMysql();
             createTableMysql();
@@ -243,9 +246,51 @@ public class testingSuite {
         return df2.format(amount);
     }
     public static LocalDate getStartDate(){
-        Reader user = new BufferedReader(new InputStreamReader(System.in));
-        System.out.println("geben sie das gewünschte Datum ein JJJJ-MM-DD");
+       Scanner user = new Scanner(System.in);
+       String date;
+       String year = "", month = "", day = "";
+       System.out.println("geben sie das gewünschte Datum ein JJJJ-MM-DD");
+       date = user.next();
+       for(int i = 0; date.length() > i; i++){
+           if(i <= 3){
+               year = year + date.charAt(i);
+           }
+           if(i > 4 && i< 7){
+               month = month + date.charAt(i);
+           }
+           if(i > 7){
+               day = day + date.charAt(i);
+           }
 
+       }
+       LocalDate startdate = LocalDate.of(Integer.parseInt(year), Integer.parseInt(month),Integer.parseInt(day));
+       System.out.println(startdate);
+
+       return startdate ;
+
+    }
+    public static LocalDate switchStartdate(){
+        boolean rightinput = false;
+        char inputtype;
+        LocalDate startdate = LocalDate.of(2010, 1, 1);;
+        while (!rightinput){
+            Scanner scan = new Scanner(System.in);
+            System.out.println("Eigenes Datum eingeben [A] oder Standard-Datum [B](2010-01-01)");
+            inputtype = scan.next().toUpperCase().charAt(0);
+            switch (inputtype){
+                case('A'):
+                    rightinput = true;
+                    startdate = getStartDate();
+                break;
+                case('B'):
+                    rightinput = true;
+                    break;
+                default:
+                    System.out.println("Falsch Eingabe, Wrong Input!");
+                    break;
+            }
+        }
+        return startdate;
     }
 
 
