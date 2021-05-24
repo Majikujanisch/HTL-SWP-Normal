@@ -1,9 +1,9 @@
 package Stockdatasave;
 
 public class SimulationData {
-    boolean bought;
+    boolean bought, first;
     int amount;
-    double money;
+    double money, startmoney;
 
     public boolean isBought() {
         return bought;
@@ -32,20 +32,43 @@ public class SimulationData {
     public SimulationData(boolean bought, int amount, double money) {
         this.bought = bought;
         this.amount = amount;
-        this.money = money;
+        this.startmoney = money;
+        this.money = this.startmoney;
+        this.first = true;
+    }
+    public SimulationData(boolean bought,boolean first, int amount, double money) {
+        this.bought = bought;
+        this.amount = amount;
+        this.startmoney = money;
+        this.money = this.startmoney;
+        this.first = false;
     }
 
-    public void buyStocks (double close, double _200){
+    public void buyStocks (double close){
         for (int i = 0; money > close; i++) {
             this.amount = i;
-            this.bought = true;
             this.money = this.money - close;
-
         }
+        this.bought = true;
+    }
+    public void buyStocks (double close, boolean bought){
+        for (int i = 0; money > close; i++) {
+            this.amount = i;
+            this.money = this.money - close;
+        }
+        this.bought = true;
+        this.first = true;
     }
     public void sellStocks (double close, double _200){
         this.money = close * this.amount;
         this.amount = 0;
         this.bought = false;
+    }
+    public void lastsale(double close){
+        if(this.bought){
+            this.money = close * this.amount;
+            this.amount=0;
+            this.bought = false;
+        }
     }
 }
