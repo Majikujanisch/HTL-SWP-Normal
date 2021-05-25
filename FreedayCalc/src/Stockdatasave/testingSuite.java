@@ -27,37 +27,23 @@ public class testingSuite {
     static String url;
     static String usernameDB;
     static String passwordDB;
-    static String ticker = "ibm";
+    static String ticker = "aapl";
     static boolean percentTimerSet = false;
     static LocalTime starttime;
     final static String path = "FreedayCalc/src/Stockdatasave/";
 //eingabe von nutzer, bei bestimmter parameter eingabe fehler ausgabe, auswertung der Strategien, 200er mit 3 Prozent
     public static void main(String[] args) {
-        //List<LocalDate> date = new ArrayList<LocalDate>();
-        LocalDate startdate;
-        startdate = switchStartdate();
+        LocalDate startdate = switchStartdate();
         LocalDate currentday = startdate ;
         int allDaysBetwStartNdToday = calcDaysFromPeriod(startdate.until(LocalDate.now())); //berechnungsmethode um alle tage zu erhalten
-        double tempclose = 0;
+        double tempsplitcor = 0;
         SimulationData data200 = new SimulationData(false, 0,100000.0);
-        SimulationData dataBuyHold = new SimulationData(false,false,  0,100000.0);
+        SimulationData dataBuyHold = new SimulationData(false,  0,100000.0);
         SimulationData data2003 = new SimulationData(false, 0, 100000.0);
         setUserdata();
-
         try{
             connectToMysql();
             createTableMysql();
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
-        try{
-            //JSONObject json = new JSONObject((IOUtils.toString(new URL("https://date.nager.at/api/v2/publicholidays/2017/US"), Charset.forName("UTF-8"))));
-            //if(!json.isEmpty()) {
-            //    date.add(LocalDate.parse((json.get("date")).toString()));
-
-            //}
-            //System.out.println(date);
             while (!currentday.isAfter(LocalDate.now())) {
                 if (currentday.getDayOfWeek() != DayOfWeek.SATURDAY || currentday.getDayOfWeek() != DayOfWeek.SUNDAY) {
                     ResultSet res;
@@ -68,38 +54,24 @@ public class testingSuite {
                         _200er = res.getDouble("zweihundert");
                         divident = res.getDouble("divident");
                         splitcor = res.getDouble("splitcor");
-                        tempclose = close;
+                        tempsplitcor = splitcor;
                         if (divident != 1) {
-                            data200.amount *= divident;
+                            dividendAnwenden(data200, divident);
+                            dividendAnwenden(data2003, divident);
+                            dividendAnwenden(dataBuyHold, divident);
                         }
-                        buyComparison(data200, dataBuyHold, splitcor, _200er, close, currentday);
-                        buyComparison3Percent(data2003, splitcor, _200er, close, currentday);
-                        sellComparison(data200, splitcor, _200er, close, currentday);
-                        sellComparison3Percent(data2003, splitcor, _200er, close, currentday);
-                        showPercentDone(startdate, currentday, allDaysBetwStartNdToday, 2);
-                        System.out.println(data2003.amount);
-
-
+                        buySellBlock(data200, dataBuyHold, data2003, splitcor, _200er, close, currentday,
+                                startdate, allDaysBetwStartNdToday,2);
                     }
                 }
                 currentday = currentday.plusDays(1);
             }
-            System.out.println("[100%] done, completed Run");
-            data200.lastsale(tempclose);
-            data2003.lastsale(tempclose);
-            dataBuyHold.lastsale(tempclose);
             disconnectMysql();
-            compareData(data200, "200er");
-            compareData(data2003, "200er mit 3%");
-            compareData(dataBuyHold, "buy & hold");
-
+            showResults(data200, data2003, dataBuyHold, tempsplitcor);
         }
         catch (Exception e){
             e.printStackTrace();
         }
-
-
-
     }
     public static boolean connectToMysql() throws ClassNotFoundException {
 
@@ -175,22 +147,25 @@ public class testingSuite {
 
     }
     public static SimulationData buyComparison(SimulationData data, SimulationData dataBH, double splitcor, double _200, double close, LocalDate date){
-        if ((splitcor < _200 && !data.bought) || !dataBH.first){
-            data.buyStocks(splitcor);
-            dataBH.buyStocks(splitcor, dataBH.first);
+        if (((splitcor < _200 && !data.bought) || !dataBH.first)){
+            if((splitcor < _200 && !data.bought)){
+                 data.buyStocks(splitcor);
+            }
+            if(!dataBH.bought)  {
+               dataBH.buyStocks(splitcor);
+            }
+
+
             insertDataInDB(date, ticker, data.bought, data.amount, data.money);
         }
         return data;
     }
     public static SimulationData buyComparison3Percent(SimulationData data,double splitcor, double _200, double close, LocalDate date){
         double temp200;
-        temp200 = _200 + ((_200/100)*3);
-        if(splitcor < temp200 && data.bought){
+        temp200 = _200 * 1.03;
+        if(splitcor < temp200 && !data.bought){
             data.buyStocks(splitcor);
-            insertDataInDB(date, ticker, data.bought, data.amount, data.money);
         }
-        System.out.println(temp200);
-        System.out.println(splitcor);
         return data;
     }
     public static SimulationData sellComparison(SimulationData data, double splitcor, double _200, double close, LocalDate date){
@@ -202,10 +177,9 @@ public class testingSuite {
     }
     public static SimulationData sellComparison3Percent(SimulationData data, double splitcor, double _200, double close, LocalDate date){
         double temp200;
-        temp200 = _200 - ((_200/100)*3);
+        temp200 = _200*1.03;
         if (splitcor > temp200 && data.bought) {
             data.sellStocks(splitcor, _200);
-            insertDataInDB(date, ticker, data.bought,  data.amount, data.money);
         }
         return data;
     }
@@ -269,6 +243,15 @@ public class testingSuite {
        return startdate ;
 
     }
+    public static void buySellBlock(SimulationData data200, SimulationData dataBuyHold, SimulationData data2003,
+                                    double splitcor, double _200er, double close, LocalDate currentday,
+                                    LocalDate startdate, int allDaysBetwStartNdToday, int waitamount){
+        buyComparison(data200, dataBuyHold, splitcor, _200er, close, currentday);
+        buyComparison3Percent(data2003, splitcor, _200er, close, currentday);
+        sellComparison(data200, splitcor, _200er, close, currentday);
+        sellComparison3Percent(data2003, splitcor, _200er, close, currentday);
+        showPercentDone(startdate, currentday, allDaysBetwStartNdToday, waitamount);
+    }
     public static LocalDate switchStartdate(){
         boolean rightinput = false;
         char inputtype;
@@ -292,7 +275,20 @@ public class testingSuite {
         }
         return startdate;
     }
-
+    public static SimulationData dividendAnwenden(SimulationData data, double dividend){
+        data.amount *= dividend;
+        return data;
+    }
+    public static void showResults(SimulationData data200, SimulationData data2003, SimulationData dataBH,
+                                   double tempclose){
+        System.out.println("[100%] done, completed Run");
+        data200.lastsale(tempclose);
+        data2003.lastsale(tempclose);
+        dataBH.lastsale(tempclose);
+        compareData(data200, "200er");
+        compareData(data2003, "200er mit 3%");
+        compareData(dataBH, "buy & hold");
+    }
 
     public static void setUserdata() {
         List<String> userdates = new ArrayList<String>();

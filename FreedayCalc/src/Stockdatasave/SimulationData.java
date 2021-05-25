@@ -34,27 +34,13 @@ public class SimulationData {
         this.amount = amount;
         this.startmoney = money;
         this.money = this.startmoney;
-        this.first = true;
-    }
-    public SimulationData(boolean bought,boolean first, int amount, double money) {
-        this.bought = bought;
-        this.amount = amount;
-        this.startmoney = money;
-        this.money = this.startmoney;
         this.first = false;
     }
 
     public void buyStocks (double close){
         for (int i = 0; money > close; i++) {
             this.amount = i;
-            this.money = this.money - close;
-        }
-        this.bought = true;
-    }
-    public void buyStocks (double close, boolean bought){
-        for (int i = 0; money > close; i++) {
-            this.amount = i;
-            this.money = this.money - close;
+            this.money -= close;
         }
         this.bought = true;
         this.first = true;
@@ -64,9 +50,9 @@ public class SimulationData {
         this.amount = 0;
         this.bought = false;
     }
-    public void lastsale(double close){
+    public void lastsale(double splitcor){
         if(this.bought){
-            this.money = close * this.amount;
+            this.money = splitcor * this.amount;
             this.amount=0;
             this.bought = false;
         }
