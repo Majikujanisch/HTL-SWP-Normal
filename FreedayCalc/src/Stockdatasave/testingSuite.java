@@ -68,6 +68,7 @@ public class testingSuite {
             }
             disconnectMysql();
             showResults(data200, data2003, dataBuyHold, tempsplitcor);
+            System.out.println(data200.money);
         }
         catch (Exception e){
             e.printStackTrace();
@@ -147,30 +148,32 @@ public class testingSuite {
 
     }
     public static SimulationData buyComparison(SimulationData data, SimulationData dataBH, double splitcor, double _200, double close, LocalDate date){
-        if (((splitcor < _200 && !data.bought) || !dataBH.first)){
-            if((splitcor < _200 && !data.bought)){
+        if (((splitcor > _200 && !data.bought) || !dataBH.first)){
+            if((splitcor > _200 && !data.bought)){
                  data.buyStocks(splitcor);
+
+                insertDataInDB(date, ticker, data.bought, data.amount, data.money);
             }
-            if(!dataBH.bought)  {
+            if(!dataBH.first)  {
                dataBH.buyStocks(splitcor);
             }
 
 
-            insertDataInDB(date, ticker, data.bought, data.amount, data.money);
         }
         return data;
     }
     public static SimulationData buyComparison3Percent(SimulationData data,double splitcor, double _200, double close, LocalDate date){
         double temp200;
         temp200 = _200 * 1.03;
-        if(splitcor < temp200 && !data.bought){
+        if(splitcor > temp200 && !data.bought){
             data.buyStocks(splitcor);
         }
         return data;
     }
     public static SimulationData sellComparison(SimulationData data, double splitcor, double _200, double close, LocalDate date){
-        if (splitcor > _200 && data.bought) {
+        if (splitcor < _200 && data.bought) {
             data.sellStocks(splitcor, _200);
+
             insertDataInDB(date, ticker, data.bought,  data.amount, data.money);
         }
         return data;
@@ -178,7 +181,7 @@ public class testingSuite {
     public static SimulationData sellComparison3Percent(SimulationData data, double splitcor, double _200, double close, LocalDate date){
         double temp200;
         temp200 = _200*1.03;
-        if (splitcor > temp200 && data.bought) {
+        if (splitcor < temp200 && data.bought) {
             data.sellStocks(splitcor, _200);
         }
         return data;
@@ -223,16 +226,16 @@ public class testingSuite {
        Scanner user = new Scanner(System.in);
        String date;
        String year = "", month = "", day = "";
-       System.out.println("geben sie das gewünschte Datum ein JJJJ-MM-DD");
+       System.out.println("geben sie das gewünschte Datum ein JJJJ-MM-DD, keine Freizeichen!");
        date = user.next();
        for(int i = 0; date.length() > i; i++){
-           if(i <= 3){
+           if(i < 4){
                year = year + date.charAt(i);
            }
            if(i > 4 && i< 7){
                month = month + date.charAt(i);
            }
-           if(i > 7){
+           if(i > 7 && i<10){
                day = day + date.charAt(i);
            }
 
