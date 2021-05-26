@@ -38,10 +38,13 @@ public class SimulationData {
     }
 
     public void buyStocks (double close){
-        for (int i = 0; money > close; i++) {
-            this.amount = i;
-            this.money -= close;
-        }
+       // for (int i = 0; money > close; i++) {
+       //     this.amount = i;
+       //     this.money -= close;
+       // }
+
+        this.amount = (int) (money / close);
+        this.money = this.money - this.amount * close;
         this.bought = true;
         this.first = true;
     }
