@@ -35,11 +35,12 @@ public class testingSuite {
     public static void main(String[] args) {
         LocalDate startdate = switchStartdate();
         LocalDate currentday = startdate ;
+        int startmoney = switchStartMoney();
         int allDaysBetwStartNdToday = calcDaysFromPeriod(startdate.until(LocalDate.now())); //berechnungsmethode um alle tage zu erhalten
         double tempsplitcor = 0;
-        SimulationData data200 = new SimulationData(false, 0,100000.0);
-        SimulationData dataBuyHold = new SimulationData(false,  0,100000.0);
-        SimulationData data2003 = new SimulationData(false, 0, 100000.0);
+        SimulationData data200 = new SimulationData(false, 0,startmoney);
+        SimulationData dataBuyHold = new SimulationData(false,  0,startmoney);
+        SimulationData data2003 = new SimulationData(false, 0, startmoney);
         setUserdata();
         try{
             connectToMysql();
@@ -245,6 +246,37 @@ public class testingSuite {
 
        return startdate ;
 
+    }
+    public static int getStartMoney(){
+        Scanner user = new Scanner(System.in);
+        System.out.println("geben sie den gewünschten Geldbetrag ein:");
+        int money = user.nextInt();
+
+        return money;
+
+    }
+    public static int switchStartMoney(){
+        boolean rightinput = false;
+        char inputtype;
+        int startmoney = 100000;
+        while (!rightinput){
+            Scanner scan = new Scanner(System.in);
+            System.out.println("Geld selber eingeben [A] oder Standard-Betrag [B](100.000)");
+            inputtype = scan.next().toUpperCase().charAt(0);
+            switch (inputtype){
+                case('A'):
+                    rightinput = true;
+                    startmoney = getStartMoney();
+                    break;
+                case('B'):
+                    rightinput = true;
+                    break;
+                default:
+                    System.out.println("Falsch Eingabe, Wrong Input!");
+                    break;
+            }
+        }
+        return startmoney;
     }
     public static void buySellBlock(SimulationData data200, SimulationData dataBuyHold, SimulationData data2003,
                                     double splitcor, double _200er, double close, LocalDate currentday,
