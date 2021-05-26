@@ -1,6 +1,6 @@
 package Stockdatasave._25_05_21;
 
-public class SimulationData {
+public class SimulationData250521 {
     boolean bought, first;
     int amount;
     double money, startmoney;
@@ -29,7 +29,7 @@ public class SimulationData {
         this.money = money;
     }
 
-    public SimulationData(boolean bought, int amount, double money) {
+    public SimulationData250521(boolean bought, int amount, double money) {
         this.bought = bought;
         this.amount = amount;
         this.startmoney = money;

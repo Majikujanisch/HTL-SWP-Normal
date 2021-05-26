@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-public class testingSuite {
+public class testingSuite250521 {
     static Connection connection;
     static String port;
     static String url;
@@ -27,15 +27,16 @@ public class testingSuite {
     static boolean percentTimerSet = false;
     static LocalTime starttime;
     final static String path = "FreedayCalc/src/Stockdatasave/";
-//eingabe von nutzer, bei bestimmter parameter eingabe fehler ausgabe, auswertung der Strategien, 200er mit 3 Prozent
+//eingabe von nutzer, bei bestimmter parameter eingabe fehler ausgabe,
+// auswertung der Strategien, 200er mit 3 Prozent
     public static void main(String[] args) {
         LocalDate startdate = switchStartdate();
         LocalDate currentday = startdate ;
         int allDaysBetwStartNdToday = calcDaysFromPeriod(startdate.until(LocalDate.now())); //berechnungsmethode um alle tage zu erhalten
         double tempsplitcor = 0;
-        SimulationData data200 = new SimulationData(false, 0,100000.0);
-        SimulationData dataBuyHold = new SimulationData(false,  0,100000.0);
-        SimulationData data2003 = new SimulationData(false, 0, 100000.0);
+        SimulationData250521 data200 = new SimulationData250521(false, 0,100000.0);
+        SimulationData250521 dataBuyHold = new SimulationData250521(false,  0,100000.0);
+        SimulationData250521 data2003 = new SimulationData250521(false, 0, 100000.0);
         setUserdata();
         try{
             connectToMysql();
@@ -143,7 +144,7 @@ public class testingSuite {
         }
 
     }
-    public static SimulationData buyComparison(SimulationData data, SimulationData dataBH, double splitcor, double _200, double close, LocalDate date){
+    public static void buyComparison(SimulationData250521 data, SimulationData250521 dataBH, double splitcor, double _200, double close, LocalDate date){
         if (((splitcor > _200 && !data.bought) || !dataBH.first)){
             if((splitcor > _200 && !data.bought)){
                  data.buyStocks(splitcor);
@@ -156,33 +157,29 @@ public class testingSuite {
 
 
         }
-        return data;
     }
-    public static SimulationData buyComparison3Percent(SimulationData data, double splitcor, double _200, double close, LocalDate date){
+    public static void buyComparison3Percent(SimulationData250521 data, double splitcor, double _200, double close, LocalDate date){
         double temp200;
         temp200 = _200 * 1.03;
         if(splitcor > temp200 && !data.bought){
             data.buyStocks(splitcor);
         }
-        return data;
     }
-    public static SimulationData sellComparison(SimulationData data, double splitcor, double _200, double close, LocalDate date){
+    public static void sellComparison(SimulationData250521 data, double splitcor, double _200, double close, LocalDate date){
         if (splitcor < _200 && data.bought) {
             data.sellStocks(splitcor, _200);
 
             insertDataInDB(date, ticker, data.bought,  data.amount, data.money);
         }
-        return data;
     }
-    public static SimulationData sellComparison3Percent(SimulationData data, double splitcor, double _200, double close, LocalDate date){
+    public static void sellComparison3Percent(SimulationData250521 data, double splitcor, double _200, double close, LocalDate date){
         double temp200;
         temp200 = _200*1.03;
         if (splitcor < temp200 && data.bought) {
             data.sellStocks(splitcor, _200);
         }
-        return data;
     }
-    public static void compareData(SimulationData data, String strategy){
+    public static void compareData(SimulationData250521 data, String strategy){
         double percent;
         percent = data.money/data.startmoney*100;
         System.out.println("Prozent mehr durch "+strategy+" Strategie: " + formateDouble(percent) + "%");
@@ -242,7 +239,7 @@ public class testingSuite {
        return startdate ;
 
     }
-    public static void buySellBlock(SimulationData data200, SimulationData dataBuyHold, SimulationData data2003,
+    public static void buySellBlock(SimulationData250521 data200, SimulationData250521 dataBuyHold, SimulationData250521 data2003,
                                     double splitcor, double _200er, double close, LocalDate currentday,
                                     LocalDate startdate, int allDaysBetwStartNdToday, int waitamount){
         buyComparison(data200, dataBuyHold, splitcor, _200er, close, currentday);
@@ -274,11 +271,10 @@ public class testingSuite {
         }
         return startdate;
     }
-    public static SimulationData dividendAnwenden(SimulationData data, double dividend){
+    public static void dividendAnwenden(SimulationData250521 data, double dividend){
         data.amount *= dividend;
-        return data;
     }
-    public static void showResults(SimulationData data200, SimulationData data2003, SimulationData dataBH,
+    public static void showResults(SimulationData250521 data200, SimulationData250521 data2003, SimulationData250521 dataBH,
                                    double tempclose){
         System.out.println("[100%] done, completed Run");
         data200.lastsale(tempclose);
