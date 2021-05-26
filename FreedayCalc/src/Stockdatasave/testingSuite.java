@@ -27,7 +27,7 @@ public class testingSuite {
     static String url;
     static String usernameDB;
     static String passwordDB;
-    static String ticker = "aapl";
+
     static boolean percentTimerSet = false;
     static LocalTime starttime;
     final static String path = "FreedayCalc/src/Stockdatasave/";
@@ -36,6 +36,7 @@ public class testingSuite {
         LocalDate startdate = switchStartdate();
         LocalDate currentday = startdate ;
         int startmoney = switchStartMoney();
+        String ticker = switchStartTicker();
         int allDaysBetwStartNdToday = calcDaysFromPeriod(startdate.until(LocalDate.now())); //berechnungsmethode um alle tage zu erhalten
         double tempsplitcor = 0;
         SimulationData data200 = new SimulationData(false, 0,startmoney);
@@ -62,7 +63,7 @@ public class testingSuite {
                             dividendAnwenden(dataBuyHold, divident);
                         }
                         buySellBlock(data200, dataBuyHold, data2003, splitcor, _200er, close, currentday,
-                                startdate, allDaysBetwStartNdToday,2);
+                                startdate, allDaysBetwStartNdToday,2, ticker);
                     }
                 }
                 currentday = currentday.plusDays(1);
@@ -116,6 +117,13 @@ public class testingSuite {
                     " stücke int," +
                     " depot double," +
                     " primary key(Day, ticker));");
+            connection.createStatement().executeUpdate("create table if not exists testing2003(" +
+                    " Day date DEFAULT (CURRENT_DATE + INTERVAL 1 YEAR)," +
+                    " ticker varchar(10)," +
+                    " flag bool," +
+                    " stücke int," +
+                    " depot double," +
+                    " primary key(Day, ticker));");
 
         }catch(Exception e){
 
@@ -148,7 +156,24 @@ public class testingSuite {
         }
 
     }
-    public static SimulationData buyComparison(SimulationData data, SimulationData dataBH, double splitcor, double _200, double close, LocalDate date){
+    public static void insertDataInDB2003(LocalDate date, String ticker, boolean flag, int anzahl, double money){
+        int flagint;
+        if(flag){
+            flagint = 1;
+        }
+        else{
+            flagint = 0;
+        }
+        try{
+            connection = DriverManager.getConnection(url, usernameDB, passwordDB);
+            connection.createStatement().executeUpdate("insert into testing2003 values ('" + date + "','"+ticker+"','"+flagint+"','"+anzahl+"','"+money+"') on Duplicate key update depot='"+money+"';");
+        }catch(Exception e){
+            System.out.println("NOinsert");
+            e.printStackTrace();
+        }
+
+    }
+    public static SimulationData buyComparison(SimulationData data, SimulationData dataBH, double splitcor, double _200, double close, LocalDate date, String ticker){
         if (((splitcor > _200 && !data.bought) || !dataBH.first)){
             if((splitcor > _200 && !data.bought)){
                  data.buyStocks(splitcor);
@@ -163,15 +188,17 @@ public class testingSuite {
         }
         return data;
     }
-    public static SimulationData buyComparison3Percent(SimulationData data,double splitcor, double _200, double close, LocalDate date){
+    public static SimulationData buyComparison3Percent(SimulationData data,double splitcor, double _200, double close, LocalDate date, String ticker){
         double temp200;
         temp200 = _200 * 1.03;
         if(splitcor > temp200 && !data.bought){
             data.buyStocks(splitcor);
+
+            insertDataInDB2003(date, ticker, data.bought,  data.amount, data.money);
         }
         return data;
     }
-    public static SimulationData sellComparison(SimulationData data, double splitcor, double _200, double close, LocalDate date){
+    public static SimulationData sellComparison(SimulationData data, double splitcor, double _200, double close, LocalDate date, String ticker){
         if (splitcor < _200 && data.bought) {
             data.sellStocks(splitcor, _200);
 
@@ -179,11 +206,13 @@ public class testingSuite {
         }
         return data;
     }
-    public static SimulationData sellComparison3Percent(SimulationData data, double splitcor, double _200, double close, LocalDate date){
+    public static SimulationData sellComparison3Percent(SimulationData data, double splitcor, double _200, double close, LocalDate date, String ticker){
         double temp200;
         temp200 = _200*1.03;
         if (splitcor < temp200 && data.bought) {
             data.sellStocks(splitcor, _200);
+
+            insertDataInDB2003(date, ticker, data.bought,  data.amount, data.money);
         }
         return data;
     }
@@ -255,6 +284,37 @@ public class testingSuite {
         return money;
 
     }
+    public static String switchStartTicker(){
+        boolean rightinput = false;
+        char inputtype;
+        String ticker = "TSLA";
+        while (!rightinput){
+            Scanner scan = new Scanner(System.in);
+            System.out.println("Ticker selber eingeben [A] oder Standard-Ticker [B](TSLA)");
+            inputtype = scan.next().toUpperCase().charAt(0);
+            switch (inputtype){
+                case('A'):
+                    rightinput = true;
+                    ticker = getStartTicker();
+                    break;
+                case('B'):
+                    rightinput = true;
+                    break;
+                default:
+                    System.out.println("Falsch Eingabe, Wrong Input!");
+                    break;
+            }
+        }
+        return ticker;
+    }
+    public static String getStartTicker(){
+        Scanner user = new Scanner(System.in);
+        System.out.println("geben sie den gewünschten Geldbetrag ein:");
+        String ticker = user.next().toUpperCase();
+
+        return ticker;
+
+    }
     public static int switchStartMoney(){
         boolean rightinput = false;
         char inputtype;
@@ -280,11 +340,11 @@ public class testingSuite {
     }
     public static void buySellBlock(SimulationData data200, SimulationData dataBuyHold, SimulationData data2003,
                                     double splitcor, double _200er, double close, LocalDate currentday,
-                                    LocalDate startdate, int allDaysBetwStartNdToday, int waitamount){
-        buyComparison(data200, dataBuyHold, splitcor, _200er, close, currentday);
-        buyComparison3Percent(data2003, splitcor, _200er, close, currentday);
-        sellComparison(data200, splitcor, _200er, close, currentday);
-        sellComparison3Percent(data2003, splitcor, _200er, close, currentday);
+                                    LocalDate startdate, int allDaysBetwStartNdToday, int waitamount, String ticker){
+        buyComparison(data200, dataBuyHold, splitcor, _200er, close, currentday, ticker);
+        buyComparison3Percent(data2003, splitcor, _200er, close, currentday, ticker);
+        sellComparison(data200, splitcor, _200er, close, currentday, ticker);
+        sellComparison3Percent(data2003, splitcor, _200er, close, currentday, ticker);
         showPercentDone(startdate, currentday, allDaysBetwStartNdToday, waitamount);
     }
     public static LocalDate switchStartdate(){
