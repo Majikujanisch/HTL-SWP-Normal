@@ -80,7 +80,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
             double divi = 1.0;
             double divident = 1.0;
-            for (int i = 0; i < updatedays; i++) {
+            for (int i = 1; i <= updatedays; i++) {
                 try {
                     boolean happened = false;
                     double coeffizient = Double.parseDouble(json.getJSONObject(date.toString()).get("8. split coefficient").toString());
@@ -111,8 +111,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
                 date = date.minusDays(1);
             }
-
-            calc200();
+            calc200(updatedays);
             insertDataInDB(LocalDate.now(), ticker);
             System.out.println("Wait for 12 sec");
             waitsec(12);
@@ -162,7 +161,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
                     " Day date DEFAULT (CURRENT_DATE + INTERVAL 1 YEAR)," +
                     " close double(6,2)," +
                     " divident double(2,1)," +
-                    " splitcor double(5,2)," +
+                    " splitcor double(7,2)," +
                     " zweihundert double(5,2)," +
                     " primary key(Day));");
 
@@ -204,8 +203,8 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
             }
         }catch(Exception e){
+            e.printStackTrace();
             System.out.println("noinsert");
-            System.out.println(e);
         }
 
 
@@ -221,16 +220,16 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         }
 
     }
-    public static void calc200(){
+    public static void calc200(int updatedays){
 
             //ResultSet resultavg=null;
             ResultSet resultday = null;
 
-
-            try{
+        for (int i = 1; i <= updatedays; i++) {
+            try {
                 connection = DriverManager.getConnection(url, usernameDB, passwordDB);
-                resultday  = connection.createStatement().executeQuery("SELECT day from " + ticker +";");
-                while(resultday.next()) {
+                resultday = connection.createStatement().executeQuery("SELECT day from " + ticker + ";");
+                while (resultday.next()) {
                     LocalDate date = resultday.getDate(1).toLocalDate();
                     double avg = 0.00;
 
@@ -239,20 +238,20 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
                     avg = resultavg.getDouble("average");
 
 
-                    var sqlCmd = "insert into " + ticker + " (Day,zweihundert)values('"+java.sql.Date.valueOf(date)+"','"+avg+"')on Duplicate key update zweihundert='" + avg + "';";
+                    var sqlCmd = "insert into " + ticker + " (Day,zweihundert)values('" + java.sql.Date.valueOf(date) + "','" + avg + "')on Duplicate key update zweihundert='" + avg + "';";
                     System.out.println(sqlCmd);
-                        connection.createStatement().executeUpdate(sqlCmd);
-
+                    connection.createStatement().executeUpdate(sqlCmd);
 
 
                     System.out.println(test);
                     test++;
                 }
-            }catch(Exception e){
+            } catch (Exception e) {
                 System.out.println("noinsert");
                 e.printStackTrace();
 
             }
+        }
 
     }
     public static void showMysql(String ticker) throws SQLException {
@@ -299,15 +298,22 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         }
         while(results.next()) {
             lastday = (results.getDate("lastUpdate")).toLocalDate();
-            if(lastday == LocalDate.now()){
-                differenz = -1;
-            }
-            else{
 
-                differenz = (int) ChronoUnit.DAYS.between(lastday, LocalDate.now());
-            }
+                Period daysperiod;
+                int daysuntil;
+                daysperiod = lastday.until(LocalDate.now());
+                daysuntil = calcDaysFromPeriod(daysperiod);
+                differenz = daysuntil;
         }
         return differenz;
+    }
+    public static int calcDaysFromPeriod(Period duration){
+        int allDays = 0;
+        allDays = allDays + duration.getYears() * 356;
+        allDays = allDays + duration.getMonths() * 30;
+        allDays = allDays + duration.getDays();
+        return allDays;
+
     }
 
     public void start(Stage stage) throws Exception {
