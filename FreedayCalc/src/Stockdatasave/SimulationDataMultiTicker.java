@@ -7,6 +7,13 @@ public class SimulationDataMultiTicker extends SimulationData{
     String ticker;
     SimulationData _200er, _2003er, BuyHold;
 
+    public String getTicker() {
+        return ticker;
+    }
+
+    public void setTicker(String ticker) {
+        this.ticker = ticker;
+    }
 
     public SimulationData get_200er() {
         return _200er;
