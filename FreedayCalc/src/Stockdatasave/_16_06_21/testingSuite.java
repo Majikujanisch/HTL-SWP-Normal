@@ -1,24 +1,20 @@
-package Stockdatasave;
+package Stockdatasave._16_06_21;
 
 
-import com.mysql.cj.protocol.Resultset;
-import org.json.JSONException;
-import org.apache.commons.io.IOUtils;
-import org.json.JSONObject;
-
-import java.io.*;
-import java.net.URL;
-import java.nio.charset.Charset;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.text.DecimalFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
-import java.text.DecimalFormat;
 import java.util.Scanner;
 
 public class testingSuite {
@@ -189,7 +185,7 @@ public class testingSuite {
         }
         return data;
     }
-    public static SimulationData buyComparison3Percent(SimulationData data,double splitcor, double _200, double close, LocalDate date, String ticker){
+    public static SimulationData buyComparison3Percent(SimulationData data, double splitcor, double _200, double close, LocalDate date, String ticker){
         double temp200;
         temp200 = _200 * 1.03;
         if(splitcor > temp200 && !data.bought){
