@@ -1,4 +1,4 @@
-package Stockdatasave;
+package Stockdatasave._16_06_21;
 
 public class SimulationData {
     boolean bought, first;
