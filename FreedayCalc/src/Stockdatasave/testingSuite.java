@@ -27,13 +27,13 @@ public class testingSuite {
     static String url;
     static String usernameDB;
     static String passwordDB;
-
+    static int multipercent = 0;
     static boolean percentTimerSet = false;
     static LocalTime starttime;
     final static String path = "FreedayCalc/src/Stockdatasave/";
 //eingabe von nutzer, bei bestimmter parameter eingabe fehler ausgabe, auswertung der Strategien, 200er mit 3 Prozent
     public static void main(String[] args) {
-
+        createTXT("testingSuite");
         switchMultOrSingle();
 
     }
@@ -108,7 +108,6 @@ public class testingSuite {
             flagint = 0;
         }
         try{
-            connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("insert into testing200 values ('" + date + "','"+ticker+"','"+flagint+"','"+anzahl+"','"+money+"') on Duplicate key update depot='"+money+"';");
         }catch(Exception e){
             System.out.println("NOinsert");
@@ -125,7 +124,6 @@ public class testingSuite {
             flagint = 0;
         }
         try{
-            connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("insert into testing2003 values ('" + date + "','"+ticker+"','"+flagint+"','"+anzahl+"','"+money+"') on Duplicate key update depot='"+money+"';");
         }catch(Exception e){
             System.out.println("NOinsert");
@@ -188,16 +186,22 @@ public class testingSuite {
         daysuntil = calcDaysFromPeriod(daysperiod);
         return ((daysuntil/daysFromStartToNow)) * 100;
     }
-    public static void showPercentDone(LocalDate startdate, LocalDate currendate, int daysFromStartToNow, int waitamount){
+    public static void showPercentDone(LocalDate startdate, LocalDate currendate, int daysFromStartToNow, int waitamount, boolean multi, int tickercount){
 
         if(!percentTimerSet){
             starttime = LocalTime.now();
             percentTimerSet = true;
         }
         if(LocalTime.now().isAfter(starttime.plusSeconds(waitamount))){
-            System.out.println("["+ formateDouble(calcpercentdone(startdate, currendate, daysFromStartToNow))+"%] done");
+            if(multi){
+                System.out.println("["+ formateDouble(calcpercentdone(startdate, currendate, daysFromStartToNow)/tickercount + (multipercent * 20))+"%] done");
+            }
+            else{
+                System.out.println("["+ formateDouble(calcpercentdone(startdate, currendate, daysFromStartToNow))+"%] done");
+            }
             percentTimerSet = false;
         }
+
 
     }
     public static int calcDaysFromPeriod(Period duration){
@@ -318,11 +322,11 @@ public class testingSuite {
                 case('A'):
                     rightinput = true;
 
-                    SimulationData data200 = new SimulationData(false, 0,startmoney);
-                    SimulationData dataBuyHold = new SimulationData(false,  0,startmoney);
-                    SimulationData data2003 = new SimulationData(false, 0, startmoney);
-                    String ticker = switchStartTicker();
 
+                    String ticker = switchStartTicker();
+                    SimulationData data200 = new SimulationData(false, 0,startmoney, ticker);
+                    SimulationData dataBuyHold = new SimulationData(false,  0,startmoney, ticker);
+                    SimulationData data2003 = new SimulationData(false, 0, startmoney, ticker);
                     setUserdata();
                     try{
                         connectToMysql();
@@ -330,21 +334,15 @@ public class testingSuite {
                         while (!currentday.isAfter(LocalDate.now())) {
                             if (currentday.getDayOfWeek() != DayOfWeek.SATURDAY || currentday.getDayOfWeek() != DayOfWeek.SUNDAY) {
                                 ResultSet res;
-                                double close, _200er, divident, splitcor;
+                                double close, _200er, splitcor;
                                 res = ReadDataFromDB(currentday, ticker.toUpperCase());  //in stockdatasafe bei tableerstellung auch!
                                 if (res.next()) {
                                     close = res.getDouble("close");
                                     _200er = res.getDouble("zweihundert");
-                                    divident = res.getDouble("divident");
                                     splitcor = res.getDouble("splitcor");
                                     tempsplitcor = splitcor;
-                                    if (divident != 1) {
-                                        dividendAnwenden(data200, divident);
-                                        dividendAnwenden(data2003, divident);
-                                        dividendAnwenden(dataBuyHold, divident);
-                                    }
                                     buySellBlock(data200, dataBuyHold, data2003, splitcor, _200er, close, currentday,
-                                            startdate, allDaysBetwStartNdToday,2, ticker);
+                                            startdate, allDaysBetwStartNdToday,2, ticker, false, 1);
                                 }
                             }
                             currentday = currentday.plusDays(1);
@@ -363,47 +361,72 @@ public class testingSuite {
                     List<String> TickerList = new ArrayList<String>();
                     TickerList = loadTxt("testingSuite");
                     List<SimulationData> dataList = new ArrayList<>();
-                    List<SimulationDataMultiTicker> multiList  = new ArrayList<>();
-                    data200 = new SimulationData(false, 0,startmoney/TickerList.size());
-                    dataBuyHold = new SimulationData(false,  0,startmoney/TickerList.size());
-                    data2003 = new SimulationData(false, 0, startmoney/TickerList.size());
-                    int index = 0;
-                    for(String t :TickerList){
-                        index++;
-                        dataList.add(data200);
-                        dataList.add(data2003);
-                        dataList.add(dataBuyHold);
-                        SimulationDataMultiTicker data = new SimulationDataMultiTicker(t,dataList);
-                        multiList.add(data);
-                    }
+                    String tic = "TSLA";
+
+
                     setUserdata();
                     try{
                         connectToMysql();
                         createTableMysql();
-                        while (!currentday.isAfter(LocalDate.now())) {
+
+                        /*while (!currentday.isAfter(LocalDate.now())) {
                             if (currentday.getDayOfWeek() != DayOfWeek.SATURDAY || currentday.getDayOfWeek() != DayOfWeek.SUNDAY) {
                                 ResultSet res;
-                                double close, _200er, divident, splitcor;
-                                int durchläufe = 0;
+
+                                double close, _200er, splitcor;
+                                int durchlaufe = 0;
                                 for (String t : TickerList) {
-                                    res = ReadDataFromDB(currentday, multiList.get(durchläufe).ticker.toUpperCase());
+                                    res = ReadDataFromDB(currentday, t.toUpperCase());
                                     //in stockdatasafe bei tableerstellung auch!
                                     if (res.next()) {
                                         close = res.getDouble("close");
                                         _200er = res.getDouble("zweihundert");
                                         splitcor = res.getDouble("splitcor");
                                         tempsplitcor = splitcor;
-                                        //Neuer BuySellBlock für mehrere Ticker!!!
-                                        buySellBlock(multiList.get(durchläufe).get_200er(),multiList.get(durchläufe).getBuyHold(),multiList.get(durchläufe).get_2003er(), splitcor, _200er, close, currentday,
-                                                startdate, allDaysBetwStartNdToday, 2,multiList.get(durchläufe).getTicker());
-                                        durchläufe++;
+                                        SimulationData _200 = dataList.get(durchlaufe);
+                                        SimulationData buyHold = dataList.get(durchlaufe+2);
+                                        SimulationData _2003 = dataList.get(durchlaufe+1);
+                                        buySellBlock(_200, buyHold, _2003, splitcor, _200er, close, currentday,
+                                                startdate, allDaysBetwStartNdToday,2, t);
+                                        dataList.set(durchlaufe, _200);
+                                        dataList.set(durchlaufe+2, buyHold);
+                                        dataList.set(durchlaufe+1, _2003);
                                     }
                                 }
+
                             }
                             currentday = currentday.plusDays(1);
+                        }*/
+                        int tickerindex = 0;
+                        for (String t : TickerList) {
+                            currentday = startdate ;
+                            data200 = new SimulationData(false, 0,startmoney/TickerList.size(), t);
+                            dataBuyHold = new SimulationData(false, 0,startmoney/TickerList.size(), t);
+                            data2003 = new SimulationData(false, 0,startmoney/TickerList.size(), t);
+                            while (!currentday.isAfter(LocalDate.now())) {
+                                if (currentday.getDayOfWeek() != DayOfWeek.SATURDAY || currentday.getDayOfWeek() != DayOfWeek.SUNDAY) {
+                                    ResultSet res;
+                                    double close, _200er, splitcor;
+                                    res = ReadDataFromDB(currentday, t.toUpperCase());  //in stockdatasafe bei tableerstellung auch!
+                                    if (res.next()) {
+                                        close = res.getDouble("close");
+                                        _200er = res.getDouble("zweihundert");
+                                        splitcor = res.getDouble("splitcor");
+                                        tempsplitcor = splitcor;
+                                        buySellBlock(data200, dataBuyHold, data2003, splitcor, _200er, close, currentday,
+                                                startdate, allDaysBetwStartNdToday,2, t, false, 1);
+                                    }
+                                }
+                                currentday = currentday.plusDays(1);
+                            }
+                            dataList.add(tickerindex, data200);
+                            dataList.add(tickerindex+1, data2003);
+                            dataList.add(tickerindex + 2, dataBuyHold);
+                            tickerindex =tickerindex+3;
+                            multipercent++;
                         }
                         disconnectMysql();
-                        showResultsmulti(multiList, tempsplitcor);
+                        showResultsmulti(dataList,TickerList, tempsplitcor);
                     }
                     catch (Exception e){
                         e.printStackTrace();
@@ -417,25 +440,20 @@ public class testingSuite {
     }
     public static void buySellBlock(SimulationData data200, SimulationData dataBuyHold, SimulationData data2003,
                                     double splitcor, double _200er, double close, LocalDate currentday,
-                                    LocalDate startdate, int allDaysBetwStartNdToday, int waitamount, String ticker){
+                                    LocalDate startdate, int allDaysBetwStartNdToday, int waitamount, String ticker,
+                                    boolean multi, int tickercount){
         buyComparison(data200, dataBuyHold, splitcor, _200er, close, currentday, ticker);
         buyComparison3Percent(data2003, splitcor, _200er, close, currentday, ticker);
         sellComparison(data200, splitcor, _200er, close, currentday, ticker);
         sellComparison3Percent(data2003, splitcor, _200er, close, currentday, ticker);
-        showPercentDone(startdate, currentday, allDaysBetwStartNdToday, waitamount);
-    }
+        if(multi){
+            showPercentDone(startdate, currentday, allDaysBetwStartNdToday, waitamount, true, tickercount);
+        }
+        else{
+            showPercentDone(startdate, currentday, allDaysBetwStartNdToday, waitamount, false, 1);
+        }
 
-    public static SimulationDataMultiTicker buySellBlockMulti(SimulationDataMultiTicker multi, double splitcor, double _200er,
-                                         double close, LocalDate currentday, LocalDate startdate,
-                                         int allDaysBetwStartNdToday, int waitamount ){
-        SimulationData data200, dataBuyHold, data2003;
-        //multi = simulationdata from spezific ticker
-        buyComparison(multi.get_200er(), multi.getBuyHold(), splitcor, _200er, close, currentday, multi.getTicker());
-        buyComparison3Percent(multi.get_2003er(), splitcor, _200er, close, currentday, multi.getTicker());
-        sellComparison(multi.get_200er(), splitcor, _200er, close, currentday, multi.getTicker());
-        sellComparison3Percent(multi.get_2003er(), splitcor, _200er, close, currentday, multi.getTicker());
-        showPercentDone(startdate, currentday, allDaysBetwStartNdToday, waitamount);
-        return multi;
+
     }
     public static LocalDate switchStartdate(){
         boolean rightinput = false;
@@ -460,10 +478,6 @@ public class testingSuite {
         }
         return startdate;
     }
-    public static SimulationData dividendAnwenden(SimulationData data, double dividend){
-        data.amount *= dividend;
-        return data;
-    }
     public static void showResults(SimulationData data200, SimulationData data2003, SimulationData dataBH,
                                    double tempclose){
         System.out.println("[100%] done, completed Run");
@@ -474,16 +488,26 @@ public class testingSuite {
         compareData(data2003, "200er mit 3%");
         compareData(dataBH, "buy & hold");
     }
-    public static void showResultsmulti(List<SimulationDataMultiTicker> dataList, double tempclose){
+    public static void showResultsmulti(List<SimulationData> dataList,List<String> ticker, double tempclose){
         System.out.println("[100%] done, completed Run");
-        for(SimulationDataMultiTicker t: dataList){
-            t.get_200er().lastsale(tempclose);
-            t.get_2003er().lastsale(tempclose);
-            t.getBuyHold().lastsale(tempclose);
-            compareData(t.get_200er(), "200er");
-            compareData(t.get_2003er(), "200er mit 3%");
-            compareData(t.getBuyHold(), "buy & hold");
+        int i = 0;
+        double endmoney200 = 0, endmoney2003 = 0, endmoneyBH = 0;
+        for(String t: ticker){
+            System.out.println(t);
+            dataList.get(i).lastsale(tempclose);
+            dataList.get(i+1).lastsale(tempclose);
+            dataList.get(i+2).lastsale(tempclose);
+            compareData(dataList.get(i), "200er");
+            compareData(dataList.get(i+1), "200er mit 3%");
+            compareData(dataList.get(i+2), "buy & hold");
+            endmoney200 = endmoney200 + dataList.get(i).getMoney();
+            endmoney2003 = endmoney2003 + dataList.get(i+1).getMoney();
+            endmoneyBH = endmoneyBH + dataList.get(i+2).getMoney();
+            i = i + 3;
         }
+        System.out.println("endgeld 200: " + endmoney200);
+        System.out.println("endgeld 200 mit 3%: " + endmoney2003);
+        System.out.println("endgeld Buy and hold: " + endmoneyBH);
     }
 
 

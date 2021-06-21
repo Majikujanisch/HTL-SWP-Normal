@@ -4,6 +4,7 @@ public class SimulationData {
     boolean bought, first;
     int amount;
     double money, startmoney;
+    String ticker;
 
     public boolean isBought() {
         return bought;
@@ -29,12 +30,21 @@ public class SimulationData {
         this.money = money;
     }
 
-    public SimulationData(boolean bought, int amount, double money) {
+    public String getTicker() {
+        return ticker;
+    }
+
+    public void setTicker(String ticker) {
+        this.ticker = ticker;
+    }
+
+    public SimulationData(boolean bought, int amount, double money, String ticker) {
         this.bought = bought;
         this.amount = amount;
         this.startmoney = money;
         this.money = this.startmoney;
         this.first = false;
+        this.ticker = ticker;
     }
     public SimulationData(){
         this.bought = false;
@@ -42,6 +52,7 @@ public class SimulationData {
         this.startmoney = 0;
         this.money = this.startmoney;
         this.first = false;
+        this.ticker = "tsla";
     }
 
     public void buyStocks (double close){
@@ -66,5 +77,16 @@ public class SimulationData {
             this.amount=0;
             this.bought = false;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "SimulationData{" +
+                "bought=" + bought +
+                ", first=" + first +
+                ", amount=" + amount +
+                ", money=" + money +
+                ", startmoney=" + startmoney +
+                '}';
     }
 }
