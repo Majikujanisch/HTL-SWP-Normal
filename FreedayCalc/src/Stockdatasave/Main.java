@@ -46,7 +46,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
         final String URL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=";
         //Scanner user = new Scanner(System.in); // deprecated
         List<String> tickerlist = new ArrayList<String>();
-
+        int runs=0;
         final String txt = "ticker";
         createTXT(txt);
         createTXT("UserDates");
@@ -108,10 +108,10 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
                 } catch (JSONException e) {
                     insertDataInDB(date, ticker, "NULL", "NULL", "NULL");
                 }
-
+                runs++;
                 date = date.minusDays(1);
             }
-            calc200(updatedays);
+            calc200(runs);
             insertDataInDB(LocalDate.now(), ticker);
             System.out.println("Wait for 12 sec");
             waitsec(12);
@@ -159,10 +159,10 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             connection = DriverManager.getConnection(url, usernameDB, passwordDB);
             connection.createStatement().executeUpdate("create table if not exists "+ ticker +"(" +
                     " Day date DEFAULT (CURRENT_DATE + INTERVAL 1 YEAR)," +
-                    " close double(6,2)," +
-                    " divident double(2,1)," +
-                    " splitcor double(7,2)," +
-                    " zweihundert double(5,2)," +
+                    " close double," +
+                    " divident double," +
+                    " splitcor double," +
+                    " zweihundert double," +
                     " primary key(Day));");
 
            /* String updateSql = String.format(
@@ -177,8 +177,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             connection.createStatement().executeUpdate("create table if not exists UpdateDates (ticker varchar(10) ,lastUpdate date, primary key(ticker));");
 
         }catch(Exception e){
-
-            System.out.println("false1");
+            e.printStackTrace();
         }
     }
     public static void insertDataInDB(LocalDate date, String ticker, String close, String divident, String cor){
@@ -225,7 +224,6 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
             //ResultSet resultavg=null;
             ResultSet resultday = null;
 
-        for (int i = 1; i <= updatedays; i++) {
             try {
                 connection = DriverManager.getConnection(url, usernameDB, passwordDB);
                 resultday = connection.createStatement().executeQuery("SELECT day from " + ticker + ";");
@@ -239,19 +237,15 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
 
                     var sqlCmd = "insert into " + ticker + " (Day,zweihundert)values('" + java.sql.Date.valueOf(date) + "','" + avg + "')on Duplicate key update zweihundert='" + avg + "';";
-                    System.out.println(sqlCmd);
                     connection.createStatement().executeUpdate(sqlCmd);
 
-
-                    System.out.println(test);
-                    test++;
                 }
             } catch (Exception e) {
                 System.out.println("noinsert");
                 e.printStackTrace();
 
             }
-        }
+
 
     }
     public static void showMysql(String ticker) throws SQLException {
@@ -328,7 +322,7 @@ public class Main extends Application{ // key IVB25ADTVUERPRXD
 
             try {
                 try {
-                    results = connection.createStatement().executeQuery("SELECT * from " + ticker + ";");
+                    results = connection.createStatement().executeQuery("SELECT * from " + ticker + " limit 1000;");
                 } catch (Exception e) {
                     e.printStackTrace();
                     System.out.println("false4");

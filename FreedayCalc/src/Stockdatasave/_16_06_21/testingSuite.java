@@ -462,10 +462,10 @@ public class testingSuite {
     public static void buySellBlockMulti(SimulationDataMultiTicker multi, double splitcor, double _200er,
                                          double close, LocalDate currentday, LocalDate startdate,
                                          int allDaysBetwStartNdToday, int waitamount, String ticker){
-        buyComparison(data200, dataBuyHold, splitcor, _200er, close, currentday, ticker);
-        buyComparison3Percent(data2003, splitcor, _200er, close, currentday, ticker);
-        sellComparison(data200, splitcor, _200er, close, currentday, ticker);
-        sellComparison3Percent(data2003, splitcor, _200er, close, currentday, ticker);
+        buyComparison(multi._200er, multi.BuyHold, splitcor, _200er, close, currentday, ticker);
+        buyComparison3Percent(multi._2003er, splitcor, _200er, close, currentday, ticker);
+        sellComparison(multi._200er, splitcor, _200er, close, currentday, ticker);
+        sellComparison3Percent(multi._2003er, splitcor, _200er, close, currentday, ticker);
         showPercentDone(startdate, currentday, allDaysBetwStartNdToday, waitamount);
     }
     public static LocalDate switchStartdate(){
