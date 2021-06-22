@@ -194,7 +194,7 @@ public class testingSuite {
         }
         if(LocalTime.now().isAfter(starttime.plusSeconds(waitamount))){
             if(multi){
-                System.out.println("["+ formateDouble(calcpercentdone(startdate, currendate, daysFromStartToNow)/tickercount + (multipercent * 20))+"%] done");
+                System.out.println("["+ formateDouble((calcpercentdone(startdate, currendate, daysFromStartToNow)/tickercount) + (multipercent * 20))+"%] done");
             }
             else{
                 System.out.println("["+ formateDouble(calcpercentdone(startdate, currendate, daysFromStartToNow))+"%] done");
@@ -368,37 +368,9 @@ public class testingSuite {
                     try{
                         connectToMysql();
                         createTableMysql();
-
-                        /*while (!currentday.isAfter(LocalDate.now())) {
-                            if (currentday.getDayOfWeek() != DayOfWeek.SATURDAY || currentday.getDayOfWeek() != DayOfWeek.SUNDAY) {
-                                ResultSet res;
-
-                                double close, _200er, splitcor;
-                                int durchlaufe = 0;
-                                for (String t : TickerList) {
-                                    res = ReadDataFromDB(currentday, t.toUpperCase());
-                                    //in stockdatasafe bei tableerstellung auch!
-                                    if (res.next()) {
-                                        close = res.getDouble("close");
-                                        _200er = res.getDouble("zweihundert");
-                                        splitcor = res.getDouble("splitcor");
-                                        tempsplitcor = splitcor;
-                                        SimulationData _200 = dataList.get(durchlaufe);
-                                        SimulationData buyHold = dataList.get(durchlaufe+2);
-                                        SimulationData _2003 = dataList.get(durchlaufe+1);
-                                        buySellBlock(_200, buyHold, _2003, splitcor, _200er, close, currentday,
-                                                startdate, allDaysBetwStartNdToday,2, t);
-                                        dataList.set(durchlaufe, _200);
-                                        dataList.set(durchlaufe+2, buyHold);
-                                        dataList.set(durchlaufe+1, _2003);
-                                    }
-                                }
-
-                            }
-                            currentday = currentday.plusDays(1);
-                        }*/
                         int tickerindex = 0;
                         for (String t : TickerList) {
+                            System.out.println(t);
                             currentday = startdate ;
                             data200 = new SimulationData(false, 0,startmoney/TickerList.size(), t);
                             dataBuyHold = new SimulationData(false, 0,startmoney/TickerList.size(), t);
@@ -407,18 +379,26 @@ public class testingSuite {
                                 if (currentday.getDayOfWeek() != DayOfWeek.SATURDAY || currentday.getDayOfWeek() != DayOfWeek.SUNDAY) {
                                     ResultSet res;
                                     double close, _200er, splitcor;
-                                    res = ReadDataFromDB(currentday, t.toUpperCase());  //in stockdatasafe bei tableerstellung auch!
-                                    if (res.next()) {
-                                        close = res.getDouble("close");
-                                        _200er = res.getDouble("zweihundert");
-                                        splitcor = res.getDouble("splitcor");
-                                        tempsplitcor = splitcor;
-                                        buySellBlock(data200, dataBuyHold, data2003, splitcor, _200er, close, currentday,
-                                                startdate, allDaysBetwStartNdToday,2, t, false, 1);
+                                    res = ReadDataFromDB(currentday, t.toUpperCase());
+
+                                        //in stockdatasafe bei tableerstellung auch!
+                                    if(res!=null) {
+                                        if (res.next()) {
+                                            close = res.getDouble("close");
+                                            _200er = res.getDouble("zweihundert");
+                                            splitcor = res.getDouble("splitcor");
+                                            tempsplitcor = splitcor;
+                                            buySellBlock(data200, dataBuyHold, data2003, splitcor, _200er, close, currentday,
+                                                    startdate, allDaysBetwStartNdToday, 2, t, false, 1);
+                                        }
                                     }
+
                                 }
                                 currentday = currentday.plusDays(1);
                             }
+                            data200.lastsale(tempsplitcor);
+                            data2003.lastsale(tempsplitcor);
+                            dataBuyHold.lastsale(tempsplitcor);
                             dataList.add(tickerindex, data200);
                             dataList.add(tickerindex+1, data2003);
                             dataList.add(tickerindex + 2, dataBuyHold);
@@ -426,7 +406,7 @@ public class testingSuite {
                             multipercent++;
                         }
                         disconnectMysql();
-                        showResultsmulti(dataList,TickerList, tempsplitcor);
+                        showResultsmulti(dataList,TickerList, startmoney);
                     }
                     catch (Exception e){
                         e.printStackTrace();
@@ -488,21 +468,22 @@ public class testingSuite {
         compareData(data2003, "200er mit 3%");
         compareData(dataBH, "buy & hold");
     }
-    public static void showResultsmulti(List<SimulationData> dataList,List<String> ticker, double tempclose){
+    public static void showResultsmulti(List<SimulationData> dataList, List<String> ticker, double startmoney){
         System.out.println("[100%] done, completed Run");
         int i = 0;
         double endmoney200 = 0, endmoney2003 = 0, endmoneyBH = 0;
         for(String t: ticker){
             System.out.println(t);
-            dataList.get(i).lastsale(tempclose);
-            dataList.get(i+1).lastsale(tempclose);
-            dataList.get(i+2).lastsale(tempclose);
             compareData(dataList.get(i), "200er");
             compareData(dataList.get(i+1), "200er mit 3%");
             compareData(dataList.get(i+2), "buy & hold");
             endmoney200 = endmoney200 + dataList.get(i).getMoney();
             endmoney2003 = endmoney2003 + dataList.get(i+1).getMoney();
             endmoneyBH = endmoneyBH + dataList.get(i+2).getMoney();
+            System.out.println("Prozent mehr durch 200er Strategie: "+(endmoney200/startmoney)*100+"%");
+            System.out.println("Prozent mehr durch 200er mit 3% Strategie: "+endmoney2003/startmoney * 100+"%");
+            System.out.println("Prozent mehr durch 2buy & hold Strategie: "+endmoneyBH/startmoney * 100+"%");
+
             i = i + 3;
         }
         System.out.println("endgeld 200: " + endmoney200);
