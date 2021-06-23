@@ -194,10 +194,10 @@ public class testingSuite {
         }
         if(LocalTime.now().isAfter(starttime.plusSeconds(waitamount))){
             if(multi){
-                System.out.println("["+ formateDouble((calcpercentdone(startdate, currendate, daysFromStartToNow)/tickercount) + (multipercent * 20))+"%] done");
+             //   System.out.println("["+ formateDouble((calcpercentdone(startdate, currendate, daysFromStartToNow)/tickercount) + (multipercent * 20))+"%] done");
             }
             else{
-                System.out.println("["+ formateDouble(calcpercentdone(startdate, currendate, daysFromStartToNow))+"%] done");
+             //   System.out.println("["+ formateDouble(calcpercentdone(startdate, currendate, daysFromStartToNow))+"%] done");
             }
             percentTimerSet = false;
         }
@@ -480,15 +480,12 @@ public class testingSuite {
             endmoney200 = endmoney200 + dataList.get(i).getMoney();
             endmoney2003 = endmoney2003 + dataList.get(i+1).getMoney();
             endmoneyBH = endmoneyBH + dataList.get(i+2).getMoney();
-            System.out.println("Prozent mehr durch 200er Strategie: "+(endmoney200/startmoney)*100+"%");
-            System.out.println("Prozent mehr durch 200er mit 3% Strategie: "+endmoney2003/startmoney * 100+"%");
-            System.out.println("Prozent mehr durch 2buy & hold Strategie: "+endmoneyBH/startmoney * 100+"%");
 
             i = i + 3;
         }
-        System.out.println("endgeld 200: " + endmoney200);
-        System.out.println("endgeld 200 mit 3%: " + endmoney2003);
-        System.out.println("endgeld Buy and hold: " + endmoneyBH);
+        System.out.println("endgeld 200: " + formateDouble(endmoney200));
+        System.out.println("endgeld 200 mit 3%: " + formateDouble(endmoney2003));
+        System.out.println("endgeld Buy and hold: " + formateDouble(endmoneyBH));
     }
 
 

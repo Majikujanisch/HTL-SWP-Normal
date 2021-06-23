@@ -15,7 +15,6 @@ public class SimulationDataMultiTicker extends SimulationData{
     }
 
 
-
     public SimulationDataMultiTicker(String ticker){
         this.ticker = ticker;
     }
